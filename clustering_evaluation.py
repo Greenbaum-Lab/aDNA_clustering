@@ -23,7 +23,7 @@ def evaluate_clustering(clusters: np.ndarray, population_ids_array: np.ndarray, 
     return ari_score_population
 
 
-def evaluate_migrations(populations, migrations, generation_time=25):
+def evaluate_migrations(populations, migrations,generations = 400, generation_time=25):
     """
 
     The score is based on:
@@ -98,13 +98,19 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
     )
 
     migrations_data = evaluate_migrations(populations, migrations)
+
     # plot_mig_scores_vs_size_and_distance(populations, 0.5, 25, migrations, X_down, pop_ids_down, dates_down, explained_variance)
 
-    thresholds = [0, 0.15, 0.25, 0.4]
-    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.5, genetic_weights=explained_variance, k=25)
+    thresholds = [0, 0.05, 0.1, 0.15, 0.2]
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=7)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=10)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=15)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=20)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75, genetic_weights=explained_variance, k=20)
 
     threshold_scores_for_k = {}
     threshold_scores_for_t = {}
+    treshold_number_of_subpopulations = {}
 
 
     for th in thresholds:
@@ -113,7 +119,10 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
                                                          replacements, threshold=th)
         # plot_within_population_clusters(X_down,dates_down, pop_ids_down, event_stage_labels, explained_variance, title=f"Clustering by Demographic Events over {th} (PCA Space)")
 
-        temporal_weight_values = [0, 0.1, 0.5, 0.75, 1, 10]
+        number_of_subpopulations = np.unique(event_stage_labels).size
+        treshold_number_of_subpopulations[th] = number_of_subpopulations
+
+        temporal_weight_values = [0, 0.1,0.2, 0.5, 0.75, 1, 10]
         k_values = np.arange(1, 41, 1)
         scores_for_t = calculate_ARI_vs_t(X_down, temporal_weight_values, k_values, pop_ids_down, event_stage_labels,
                                           explained_variance)
@@ -132,5 +141,84 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
 
     # plot_average_score_vs_t_and_k(populations, migrations, X_down, pop_ids_down, dates_down, explained_variance)
 
-    return threshold_scores_for_k, threshold_scores_for_t
+    return threshold_scores_for_k, threshold_scores_for_t, treshold_number_of_subpopulations
 
+
+def create_mean_ari_grid_heatmap(scores_for_t, temporal_weight_values, k_values):
+    """
+    Calculates the mean ARI score for every (K, t) combination within each threshold
+    and displays them in a 3x2 grid of heatmaps (one subplot per threshold).
+    """
+
+    thresholds = sorted(scores_for_t[0].keys())
+    num_thresholds = len(thresholds)  # Should be 5 based on your image
+
+    if num_thresholds != 5:
+        print("Warning: This layout is optimized for exactly 5 thresholds.")
+
+    num_t = len(temporal_weight_values)
+    num_k = len(k_values)
+
+    # Define the grid layout: 3 rows, 2 columns (6 total slots for 5 plots)
+    GRID_ROWS = 3
+    GRID_COLS = 2
+
+    # 1. Setup the 3x2 subplot grid
+    # figsize adjusted to be wider than it is tall
+    fig, axes = plt.subplots(GRID_ROWS, GRID_COLS, figsize=(18, 12), sharex=True, sharey=True)
+    # Flatten the axes array for easy indexing: axes[0], axes[1], ...
+    axes = axes.flatten()
+
+    # Determine the common color scale limits (vmin, vmax)
+    all_ari_values = [np.array(sim[th]).mean(axis=0) for th in thresholds for sim in scores_for_t]
+    vmin = np.min(all_ari_values) if all_ari_values else 0.0
+    vmax = np.max(all_ari_values) if all_ari_values else 1.0
+
+    # 2. Iterate through each threshold and draw its heatmap
+    for idx, th in enumerate(thresholds):
+        ax = axes[idx]
+
+        # Extract and average the data for the current threshold
+        th_scores_for_t = [sim[th] for sim in scores_for_t]
+        th_scores_for_t = np.array(th_scores_for_t)
+        mean_t = th_scores_for_t.mean(axis=0)
+
+        # Plot the heatmap (mean_t)
+        im = ax.imshow(mean_t, cmap='plasma', origin='lower', aspect='auto', vmin=vmin, vmax=vmax)
+
+        # Set Y-axis (Temporal weight)
+        ax.set_yticks(np.arange(num_t))
+        ax.set_yticklabels([f'{t}' for t in temporal_weight_values])
+        ax.set_ylabel('Temporal weight (t)', fontsize=10)
+        ax.set_title(f'Threshold = {th}', fontsize=12)
+
+        # Add a common Colorbar for this specific plot
+        # We only add a colorbar to the first subplot in the last row for space efficiency
+        if idx == len(thresholds) - 1 or idx == 0:
+            cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            cbar.ax.set_ylabel('Mean ARI Score', rotation=-90, va="bottom")
+
+        # Set X-axis (K values) for all plots
+        ax.set_xticks(np.arange(num_k))
+        # Only show labels on the bottom row for cleaner look
+        if idx >= GRID_ROWS * GRID_COLS - GRID_COLS:
+            ax.set_xticklabels([f'{k:.0f}' for k in k_values], rotation=45, ha="right")
+            ax.set_xlabel('Number of clusters (K)', fontsize=12)
+        else:
+            ax.set_xticklabels([])
+
+        # Add text annotations (optional, for high-value cells)
+        for i in range(num_t):
+            for j in range(num_k):
+                val = mean_t[i, j]
+                if val > 0.6:
+                    ax.text(j, i, f"{val:.2f}", ha="center", va="center", color="k", fontsize=5)
+
+    # 3. Handle the empty subplot (slot 5 in a 3x2 grid for 5 plots)
+    if num_thresholds < GRID_ROWS * GRID_COLS:
+        # Turn off the empty subplot's axes
+        axes[num_thresholds].axis('off')
+
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust for suptitle
+    plt.suptitle("Mean ARI Score Grid: Optimal K and t per Threshold", fontsize=16)
+    plt.show()

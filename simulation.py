@@ -1,5 +1,5 @@
 from imports_constants_paramaters import *
-from simulation_analysis import selective_alleles_check, samples_pca
+from simulation_analysis import selective_alleles_check, samples_pca, plot_sample_pca
 def generate_population(min_population_size, max_population_size, base_freqs):
     """
     Generates a single population with allele frequencies based on a normal distribution
@@ -195,16 +195,16 @@ def genetic_drift_simulation(generations, populations, migrations, splits, repla
     """
     result_matrix = []
     baseline_migrations = []
-    gen = 0
-    for i in range(100):
-        src_pop = np.random.randint(0, len(populations))
-        tgt_pop = np.random.randint(0, len(populations))
-        while tgt_pop == src_pop:
-            tgt_pop = np.random.randint(0, len(populations))
-        size = np.random.uniform(0.01, 0.05)
-        duration = 1
-        baseline_migrations.append([src_pop, tgt_pop, gen, size, duration])
-        gen += 4
+    # gen = 0
+    # for i in range(100):
+    #     src_pop = np.random.randint(0, len(populations))
+    #     tgt_pop = np.random.randint(0, len(populations))
+    #     while tgt_pop == src_pop:
+    #         tgt_pop = np.random.randint(0, len(populations))
+    #     size = np.random.uniform(0.005, 0.015)
+    #     duration = 1
+    #     baseline_migrations.append([src_pop, tgt_pop, gen, size, duration])
+    #     gen += 4
 
     for gen in range(generations):
 
@@ -221,7 +221,7 @@ def genetic_drift_simulation(generations, populations, migrations, splits, repla
 
         if unsampled_pop_idx != None:
             if np.random.rand() < p_mig_unsample:
-                migrate(populations, unsampled_pop_idx, np.random.randint(0, 5), 0.01)
+                migrate(populations, unsampled_pop_idx, np.random.randint(0, len(populations)-2), 0.01)
 
         # splits
         for splt in splits:
@@ -446,4 +446,5 @@ def generate_kmeans_data(num_of_populations, migrations, splits, replacements, m
     X = np.column_stack((X_pca, dates_array))
 
     return populations, X, dates_array, population_ids_array, population_timesteps_array, explained_variance[:3]
+
 

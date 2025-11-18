@@ -18,12 +18,12 @@ def simulate_drift(migrations, splits, replacements, mutations=False):
         None. Displays plots and statistics on drift results.
     """
     # Step 1: Create initial populations
-    populations = generate_populations(4, min_population_size,
+    populations = generate_populations(5, min_population_size,
                                        max_population_size, num_of_variants)
     unsampled_pop_idx = len(populations)-1
 
     # Step 2: Run short simulation to stabilize variation
-    populations, _ = genetic_drift_simulation(100, populations, [], init_splits, [], False)
+    populations, _ = genetic_drift_simulation(100, populations, [], [], [], False)
 
     # Step 3: Truncate frequency history to final state, reset time
     for population in populations:
@@ -80,71 +80,120 @@ def generate_simulation_data(seed=None):
         gen+=16
 
 
-    # print(f"migrations: {migrations}")
 
     return run_clustering_evaluation(5, migrations, [], [])
 
+# simulate_drift([], [], [], True)
+# run_clustering_evaluation(4, [], [], [])
 
-num_simulations = 1000
-num_workers=50
 
 
 def run_simulation(seed):
     return generate_simulation_data(seed)
 
 
-scores_for_k = []
-scores_for_t = []
-if __name__ == "__main__":
-    with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
-        results = list(executor.map(run_simulation, range(num_simulations)))
+def run_many_simulations(num_of_simulations, num_workers):
+    scores_for_k = []
+    scores_for_t = []
+    subpopulations_numbers = []
+    if __name__ == "__main__":
+        with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+            results = list(executor.map(run_simulation, range(num_simulations)))
 
-for sim_scores_for_k, sim_scores_for_t in results:
-    scores_for_k.append(sim_scores_for_k)
-    scores_for_t.append(sim_scores_for_t)
+    for sim_scores_for_k, sim_scores_for_t, sim_number_of_subpopulations in results:
+        scores_for_k.append(sim_scores_for_k)
+        scores_for_t.append(sim_scores_for_t)
+        subpopulations_numbers.append(sim_number_of_subpopulations)
 
-thresholds = scores_for_k[0].keys()
-for th in thresholds:
-    th_scores_for_t = [sim[th] for sim in scores_for_t]
-    th_scores_for_t = np.array(th_scores_for_t)
-    th_scores_for_k = [sim[th] for sim in scores_for_k]
-    th_scores_for_k = np.array(th_scores_for_k)
+    temporal_weight_values_for_t = [0, 0.1, 0.2, 0.5, 0.75, 1, 10]
+    k_values_for_t = np.arange(1, 41, 1)
 
-    mean_t = th_scores_for_t.mean(axis=0)
-    std_t = th_scores_for_t.std(axis=0)
+    temporal_weight_values_for_k = np.arange(0, 1.5, 0.05)
+    k_values_for_k = [5, 10, 20, 30, 40, 100]
 
-    temporal_weight_values = [0, 0.1, 0.5, 0.75, 1, 10]
-    k_values = np.arange(1, 41, 1)
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.set_ylim([0, 1])
-    ax.set_xlabel('Number of clusters (K)')
-    ax.set_ylabel('ARI')
+    thresholds = scores_for_k[0].keys()
+    for th in thresholds:
+        th_scores_for_t = [sim[th] for sim in scores_for_t]
+        th_scores_for_t = np.array(th_scores_for_t)
+        th_scores_for_k = [sim[th] for sim in scores_for_k]
+        th_scores_for_k = np.array(th_scores_for_k)
 
-    for i, t_val in enumerate(temporal_weight_values):
-        mean_vals = mean_t[i]
-        std_vals = std_t[i]
-        ax.plot(k_values, mean_vals, label=f't={t_val}')
-        ax.fill_between(k_values, mean_vals - std_vals, mean_vals + std_vals, alpha=0.2)
-    ax.set_title(f"ARI for various temporal weights - threshold = {th}")
-    ax.legend()
-    plt.show()
+        th_subpopulations_numbers = [sim[th] for sim in subpopulations_numbers]
+        th_subpopulations_numbers = np.array(th_subpopulations_numbers)
+        mean_num_of_subpops = th_subpopulations_numbers.mean()
 
-    mean_k = th_scores_for_k.mean(axis=0)
-    std_k = th_scores_for_k.std(axis=0)
+        mean_t = th_scores_for_t.mean(axis=0)
+        std_t = th_scores_for_t.std(axis=0)
 
-    temporal_weight_values = np.arange(0, 1.5, 0.05)
-    k_values = [5, 10, 20, 30, 40, 100]
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.set_ylim([0, 1])
-    ax.set_xlabel('Temporal weight')
-    ax.set_ylabel('ARI')
 
-    for i, k_val in enumerate(k_values):
-        mean_vals = mean_k[i]
-        std_vals = std_k[i]
-        ax.plot(temporal_weight_values, mean_vals, label=f'k={k_val}')
-        ax.fill_between(temporal_weight_values, mean_vals - std_vals, mean_vals + std_vals, alpha=0.2)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.set_ylim([0, 1])
+        ax.set_xlabel('Number of clusters (K)')
+        ax.set_ylabel('ARI')
 
-    ax.set_title(f"ARI for various k - threshold = {th}")
-    ax.legend()
-    plt.show()
+        for i, t_val in enumerate(temporal_weight_values_for_t):
+            mean_vals = mean_t[i]
+            std_vals = std_t[i]
+            ax.plot(k_values_for_t, mean_vals, label=f't={t_val}')
+            ax.fill_between(k_values_for_t, mean_vals - std_vals, mean_vals + std_vals, alpha=0.2)
+        ax.set_title(f"ARI for various temporal weights - threshold = {th}")
+        ax.text(
+            0.02, 0.95,
+            f"Avg number of populations:\n{mean_num_of_subpops:.2f}",
+            transform=ax.transAxes,
+            fontsize=10,
+            verticalalignment='top',
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7)
+        )
+        ax.legend()
+        plt.show()
+
+        mean_k = th_scores_for_k.mean(axis=0)
+        std_k = th_scores_for_k.std(axis=0)
+
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.set_ylim([0, 1])
+        ax.set_xlabel('Temporal weight')
+        ax.set_ylabel('ARI')
+
+        for i, k_val in enumerate(k_values_for_k):
+            mean_vals = mean_k[i]
+            std_vals = std_k[i]
+            ax.plot(temporal_weight_values_for_k, mean_vals, label=f'k={k_val}')
+            ax.fill_between(temporal_weight_values_for_k, mean_vals - std_vals, mean_vals + std_vals, alpha=0.2)
+
+        ax.set_title(f"ARI for various k - threshold = {th}")
+        ax.text(
+            0.02, 0.95,
+            f"Avg number of populations:\n{mean_num_of_subpops:.2f}",
+            transform=ax.transAxes,
+            fontsize=10,
+            verticalalignment='top',
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7)
+        )
+        ax.legend()
+        plt.show()
+
+
+    create_mean_ari_grid_heatmap(scores_for_t, temporal_weight_values_for_t, k_values_for_t)
+
+num_simulations = 100
+num_workers=50
+run_many_simulations(num_simulations, num_workers)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

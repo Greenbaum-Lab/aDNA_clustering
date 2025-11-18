@@ -43,12 +43,12 @@ generation_step = 25
 num_of_populations = 5
 min_population_size = 500
 max_population_size = 1500
-POP_SIZE = 250              # Fixed pop size if not using random range
+POP_SIZE = 750              # Fixed pop size if not using random range
 pop_growth_factor = 1        # Growth multiplier per generation
 
-sigma = 0.2                # Std deviation for sampling allele freq
+sigma = 0.1              # Std deviation for sampling allele freq
 
-num_of_variants = 1000   # Number of simulated SNPs/loci
+num_of_variants = 500   # Number of simulated SNPs/loci
 frequency_threshold = 0.01   # Threshold for filtering rare/common alleles
 
 mutation_rate = 0.0001
@@ -68,7 +68,7 @@ areas = ('s_europe','britain', 'asia', 'levant', 'america', 'step', 'unsample')
 
 p_stay=0.33 #chance of sampling from same generation
 
-p_mig_unsample = 0.15
+p_mig_unsample = 0.05
 
 # Initial split events for setting up populations at time 0
 i_split1 = [0, 1]
@@ -77,4 +77,3 @@ i_split3 = [1, 1]
 init_splits = [i_split1, i_split3]
 
 
-p_mig_unsample = 0.15

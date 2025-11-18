@@ -14,7 +14,7 @@ def downsample_within_populations(X, dates_array, population_ids_array, populati
 
     dates_array = np.array(dates_array)
     population_ids_array = np.array(population_ids_array)
-    population_timesteps_array = np.array(population_timesteps_array)
+    imesteps_array = np.array(population_timesteps_array)
 
     min_date = int(np.min(dates_array))
     max_date = int(np.max(dates_array))
@@ -135,7 +135,7 @@ def plot_within_population_clusters(
     fig.legend(handles, labels, loc='center left', bbox_to_anchor=(1.01, 0.5), title='pop_cluster')
 
     if title:
-        fig.suptitle(title, fontsize=14)
+        fig.suptitle(title + f"number of clusters - {unique_labels.shape[0]}", fontsize=14)
 
     plt.tight_layout()
     plt.show()
@@ -194,6 +194,7 @@ def label_by_demographic_events(population_ids_array, dates_array, migrations_da
         for i in range(len(labels[pop])):
             if year > labels[pop][i]:
                 dempographic_labels[sample] = f"{pop}_{i}"
+
 
     return dempographic_labels
 
