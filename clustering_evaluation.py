@@ -49,8 +49,7 @@ def evaluate_migrations(populations, migrations,generations = 400, generation_ti
         D_i = calculate_FST(populations[src_pop], populations[tgt_pop], mig_gen)
 
         # Final score
-        m_i = mig_size / 0.2
-        D_i /= 0.2
+        m_i = mig_size
 
         migrations_data.append({
             'migration_index': i,
@@ -101,7 +100,7 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
 
     # plot_mig_scores_vs_size_and_distance(populations, 0.5, 25, migrations, X_down, pop_ids_down, dates_down, explained_variance)
 
-    thresholds = [0, 0.05, 0.1, 0.15, 0.2]
+    thresholds = [0, 0.002, 0.004, 0.006, 0.008]
     # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=7)
     # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=10)
     # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=15)
