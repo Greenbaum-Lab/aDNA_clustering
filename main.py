@@ -84,8 +84,7 @@ def generate_simulation_data(seed=None):
     return run_clustering_evaluation(5, migrations, [], [])
 
 # simulate_drift([], [], [], True)
-# run_clustering_evaluation(4, [], [], [])
-
+generate_simulation_data()
 
 
 def run_simulation(seed):
@@ -178,9 +177,9 @@ def run_many_simulations(num_of_simulations, num_workers):
 
     create_mean_ari_grid_heatmap(scores_for_t, temporal_weight_values_for_t, k_values_for_t)
 
-num_simulations = 100
+num_simulations = 1000
 num_workers=50
-run_many_simulations(num_simulations, num_workers)
+# run_many_simulations(num_simulations, num_workers)
 
 
 
