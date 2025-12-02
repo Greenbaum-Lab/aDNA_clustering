@@ -98,16 +98,40 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
 
     migrations_data = evaluate_migrations(populations, migrations)
 
-    # plot_mig_scores_vs_size_and_distance(populations, 0.5, 25, migrations, X_down, pop_ids_down, dates_down, explained_variance)
 
 
     thresholds = [0, 0.002, 0.004, 0.006, 0.008]
 
-    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=7)
-    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=10)
-    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=15)
-    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0, genetic_weights=explained_variance, k=20)
-    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75, genetic_weights=explained_variance, k=20)
+    # k=6, t=0 (Clustering without time)
+    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
+                               genetic_weights=explained_variance, k=7)
+
+
+    # k=6, t=0.25 (Low temporal weight)
+    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
+                               genetic_weights=explained_variance, k=7)
+
+
+    # k=6, t=0.75 (Higher temporal weight)
+    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
+                               genetic_weights=explained_variance, k=7)
+
+
+
+    # k=20, t=0 (Over-clustering without time)
+    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
+                               genetic_weights=explained_variance, k=20)
+
+
+    # k=20, t=0.25
+    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
+                               genetic_weights=explained_variance, k=20)
+
+
+    # k=20, t=0.75 (Over-clustering with temporal weight)
+    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
+                               genetic_weights=explained_variance, k=20)
+
 
     threshold_scores_for_k = {}
     threshold_scores_for_t = {}
@@ -118,7 +142,8 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
         print(f"############# running evaluation for threshold - {th} #############")
         event_stage_labels = label_by_demographic_events(pop_ids_down, dates_down, migrations_data, splits,
                                                          replacements, threshold=th)
-        # plot_within_population_clusters(X_down,dates_down, pop_ids_down, event_stage_labels, explained_variance, title=f"Clustering by Demographic Events over {th} (PCA Space)")
+        plot_within_population_clusters(X_down,dates_down, pop_ids_down, event_stage_labels, explained_variance, title=f"Populations by Demographic Events over {th} (PCA Space)")
+        plot_demographic_events_by_subcluster(dates_down, event_stage_labels, title=f"Ground Truth for Threshold {th}", migration_events_data=migrations_data, current_threshold=th)
 
         number_of_subpopulations = np.unique(event_stage_labels).size
         treshold_number_of_subpopulations[th] = number_of_subpopulations

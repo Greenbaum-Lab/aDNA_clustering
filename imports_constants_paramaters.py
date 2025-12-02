@@ -18,6 +18,8 @@ import concurrent.futures
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from matplotlib.patches import Ellipse
 
 
 # --- Index constants for data structure referencing ---
