@@ -55,18 +55,24 @@ def plot_within_population_clusters(
         population_ids_array,
         within_labels,
         explained_variance=None,
-        title=None
+        title=None,
+        migration_lines=None,
+        current_threshold=0.0
 ):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from collections import defaultdict
+
     pc1 = X[:, 0]
     pc2 = X[:, 1]
 
     unique_labels = np.unique(within_labels)
 
-    # Step 1: Extract population ID from cluster label (e.g., '0_3' -> 0)
+    # --- Initialization and Color Calculation (Unchanged) ---
     label_to_pop = {label: int(str(label).split('_')[0]) for label in unique_labels}
     pops = sorted(set(label_to_pop.values()))
 
-    # Step 2: Define color palettes per population (dark to light)
+    # Define colors for each population (using color palettes)
     pop_to_colors = {
         0: ['#c6dbef', '#6baed6', '#08306b', '#9ecae1', '#4292c6', '#2171b5'],  # Blue
         1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],  # Orange
@@ -77,32 +83,31 @@ def plot_within_population_clusters(
         6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],  # Pink
     }
 
-    # Step 3: Calculate average date for each cluster
+    # Calculate average date for each cluster
     cluster_avg_dates = {}
     for label in unique_labels:
         mask = (within_labels == label)
         cluster_avg_dates[label] = np.mean(dates_array[mask])
 
-    # Step 4: Assign colors so that clusters with earlier dates get lighter colors
+    # Assign colors based on population and date
     label_to_color = {}
     pop_label_groups = defaultdict(list)
     for label, pop in label_to_pop.items():
         pop_label_groups[pop].append(label)
 
     for pop, labels_in_pop in pop_label_groups.items():
-        # Sort clusters by average date descending (earlier = larger year before present)
+        # Sort clusters by date (older first)
         labels_sorted = sorted(labels_in_pop, key=lambda l: cluster_avg_dates[l], reverse=True)
-
         colors = pop_to_colors[pop]
         n_colors = len(colors)
-
-        # Assign lighter colors (end of palette) to earlier clusters, darker (start) to later
         for idx, label in enumerate(labels_sorted):
             color_idx = min(idx, n_colors - 1)
-            # Reverse color indexing: idx=0 gets lightest (last color), idx=n gets darkest
+            # Assign color: uses lighter colors for earlier (older) clusters
             label_to_color[label] = colors[-(color_idx + 1)]
 
-    # === Plotting ===
+    # -------------------------------------------------------------------
+    # Plotting setup
+    # -------------------------------------------------------------------
     fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharey=False)
 
     # View 1: PC1 vs PC2
@@ -113,19 +118,64 @@ def plot_within_population_clusters(
     axes[0].set_ylabel(f'PC2 ({explained_variance[1] * 100:.1f}%)' if explained_variance is not None else 'PC2')
     axes[0].set_title('PC1 vs PC2')
 
-    # View 2: PC1 vs Time
+    # --- Migration Data Preparation & Stacking Parameters ---
+    filtered_lines = []
+    if migration_lines:
+        filtered_lines = [
+            line for line in migration_lines
+            if line['score'] > current_threshold
+        ]
+
+    # Stacking parameters
+    AXES_LABEL_Y_BASE = -0.3
+    STACK_HEIGHT_REL = 0.12
+    LABEL_TIME_WIDTH_YBP = 800
+    MAX_STACK_TRACKS = 6
+
+    # View 2: PC1 vs Time & View 3: PC2 vs Time
+    axes[1].grid(True, linestyle='--', alpha=0.6)
+    axes[2].grid(True, linestyle='--', alpha=0.6)
+
+    # Scatter plots of data points
     for label in unique_labels:
         mask = (within_labels == label)
         axes[1].scatter(dates_array[mask], pc1[mask], color=label_to_color[label], alpha=0.9, s=20)
+        axes[2].scatter(dates_array[mask], pc2[mask], color=label_to_color[label], alpha=0.9, s=20)
+
+    # -------------------------------------------------------------
+    # 3. CALL HELPER FUNCTION TO DRAW LABELS
+    # -------------------------------------------------------------
+    if filtered_lines:
+        # PC1 vs Time
+        _draw_migration_labels(
+            axes=axes[1],
+            filtered_lines=filtered_lines,
+            pop_to_colors=pop_to_colors,
+            AXES_LABEL_Y_BASE=AXES_LABEL_Y_BASE,
+            STACK_HEIGHT_REL=STACK_HEIGHT_REL,
+            LABEL_TIME_WIDTH_YBP=LABEL_TIME_WIDTH_YBP,
+            MAX_STACK_TRACKS=MAX_STACK_TRACKS,
+            is_pc2=False
+        )
+
+        # PC2 vs Time
+        _draw_migration_labels(
+            axes=axes[2],
+            filtered_lines=filtered_lines,
+            pop_to_colors=pop_to_colors,
+            AXES_LABEL_Y_BASE=AXES_LABEL_Y_BASE,
+            STACK_HEIGHT_REL=STACK_HEIGHT_REL,
+            LABEL_TIME_WIDTH_YBP=LABEL_TIME_WIDTH_YBP,
+            MAX_STACK_TRACKS=MAX_STACK_TRACKS,
+            is_pc2=True
+        )
+
+    # Finalizing axes settings
     axes[1].set_xlabel('Years Before Present')
     axes[1].set_ylabel('PC1')
     axes[1].set_title('PC1 over Time')
     axes[1].invert_xaxis()
 
-    # View 3: PC2 vs Time
-    for label in unique_labels:
-        mask = (within_labels == label)
-        axes[2].scatter(dates_array[mask], pc2[mask], color=label_to_color[label], alpha=0.9, s=20)
     axes[2].set_xlabel('Years Before Present')
     axes[2].set_ylabel('PC2')
     axes[2].set_title('PC2 over Time')
@@ -137,36 +187,35 @@ def plot_within_population_clusters(
     if title:
         fig.suptitle(title + f"number of clusters - {unique_labels.shape[0]}", fontsize=14)
 
-    plt.tight_layout()
+    # Adjust subplot parameters to make enough room for the labels (bottom set high due to -0.3 base)
+    plt.subplots_adjust(bottom=0.35)
     plt.show()
-
 
 def plot_demographic_events_by_subcluster(
         dates_array,
         within_labels,
         title=None,
-        migration_events_data=None,
-        current_threshold=0.0
+        migration_lines=None,  # <<< שינוי: מקבל רשימה גולמית
+        current_threshold=0.0  # <<< שינוי: סף הסינון
 ):
     """
         Plots the demographic-temporal structure found by the clustering algorithm,
-        and optionally adds migration arrows, filtered by a genetic threshold.
+        and optionally adds migration bars, filtered by a genetic threshold.
 
         Args:
             dates_array (np.ndarray): Array of sample dates (Years Before Present).
             within_labels (np.ndarray): Array of cluster labels (e.g., '0_1', '1_3').
             title (str, optional): Title for the plot.
-            migration_events_data (list of dicts, optional): Data defining migration events
-                                                            (src, tgt, year, m_i, D_i).
-            current_threshold (float): Only plot migrations where m_i * D_i > current_threshold.
+            migration_lines (list of dicts, optional): Data defining ALL migration events (unfiltered).
+            current_threshold (float): Only plot migrations where score > current_threshold.
         """
 
+    # 1. Basic definitions and mapping
     unique_labels = np.unique(within_labels)
     if unique_labels.size == 0:
         print("Error: No unique labels found. Cannot plot.")
         return
 
-    # 1. Basic definitions and mapping
     label_to_pop = {label: int(str(label).split('_')[0]) for label in unique_labels}
     pops = sorted(set(label_to_pop.values()))
     pop_to_y_pos = {pop: idx + 1 for idx, pop in enumerate(pops)}
@@ -192,7 +241,7 @@ def plot_demographic_events_by_subcluster(
         else:
             cluster_avg_dates[label] = np.inf
 
-            # 4. Assign specific color based on temporal ordering (CRITICAL STEP)
+    # 4. Assign specific color based on temporal ordering (CRITICAL STEP)
     label_to_color = {}
     pop_label_groups = defaultdict(list)
     for label, pop in label_to_pop.items():
@@ -210,6 +259,8 @@ def plot_demographic_events_by_subcluster(
             # Assign color: This line matches your scatter plot logic
             label_to_color[label] = colors[-(color_idx + 1)]
 
+    # We need pop_to_representative_color for the migration bars, but we assume it's calculated in run_clustering_evaluation
+    # and passed via migration_lines. However, if run_clustering_evaluation doesn't calculate it, we re-calculate it here:
     pop_to_representative_color = {pop: pop_to_colors.get(pop, ['gray'])[-1] for pop in pops if pop in pop_to_colors}
     for pop in pops:
         if pop not in pop_to_representative_color:
@@ -258,39 +309,50 @@ def plot_demographic_events_by_subcluster(
                 print(f"Warning: Failed to plot label {label} due to data error: {e}")
             continue
 
-    # --- Draw Migration Arrows (NEW LOGIC FOR FILTERING) ---
-    if migration_events_data is not None and len(migration_events_data) > 0:
+    # --- Draw Migration Vertical Bars (with local filtering) ---
+    if migration_lines:
 
-        # Filtering the migration events based on the threshold (m_i * D_i > threshold)
-        filtered_migrations = [
-            event for event in migration_events_data
-            if event.get('m_i', 0) * event.get('D_i', 0) > current_threshold  # <--- THE CRITICAL CHANGE
+        # 1. Filter lines based on the plot's threshold
+        filtered_lines = [
+            line for line in migration_lines
+            if line['score'] > current_threshold
         ]
 
-        print(f"Plotting {len(filtered_migrations)} migration events (m_i * D_i > {current_threshold:.5f})")
+        print(
+            f"Plotting {len(filtered_lines)} migration events (Score > {current_threshold:.5f}) on ground truth plot.")
 
-        for event in filtered_migrations:
-            src_pop = event['src']
-            tgt_pop = event['tgt']
-            mig_year = event['year']
+        for line_data in filtered_lines:
 
-            y_start = pop_to_y_pos.get(src_pop)
-            y_end = pop_to_y_pos.get(tgt_pop)
+            y_pos_center = line_data['y_pos_pop_plot']
 
-            if y_start is not None and y_end is not None:
-                # Draws the arrow
-                ax.annotate(
-                    '',
-                    xy=(mig_year, y_end),
-                    xytext=(mig_year, y_start),
-                    arrowprops=dict(
-                        facecolor='k',
-                        edgecolor='k',
-                        arrowstyle='->',
-                        linewidth=1.5,
-                        connectionstyle="arc3,rad=0.1"
-                    ),
-                    zorder=3
+            if y_pos_center is not None:
+                # rect_height is defined above
+                y_start = y_pos_center - rect_height / 2
+                y_end = y_pos_center + rect_height / 2
+                mig_year = line_data['year']
+
+                # 1. שרטוט הקו האנכי (הפס)
+                ax.plot(
+                    [mig_year, mig_year],
+                    [y_start, y_end],
+                    color=line_data['color'],
+                    linestyle='-',
+                    linewidth=2.5,
+                    zorder=4,
+                    alpha=1.0
+                )
+
+                # 2. הוספת התווית
+                ax.text(
+                    mig_year,
+                    y_end + 0.05,
+                    line_data['score_text'],
+                    fontsize=8,
+                    ha='center',
+                    va='bottom',
+                    color=line_data['color'],
+                    fontweight='bold',
+                    zorder=5
                 )
 
     # -----------------------------------------------------
@@ -304,7 +366,7 @@ def plot_demographic_events_by_subcluster(
     ax.set_ylabel('Population ID (Clustered)')
 
     y_ticks = [pop_to_y_pos[pop] for pop in pops]
-    y_labels = [f'Pop {pop+1}' for pop in pops]
+    y_labels = [f'Pop {pop + 1}' for pop in pops]
     ax.set_yticks(y_ticks)
     ax.set_yticklabels(y_labels)
     ax.set_ylim(min(y_ticks) - 0.7, max(y_ticks) + 0.7)
@@ -462,11 +524,6 @@ def plot_ellipse(ax, mean, cov, color, alpha=0.7, n_std=1.5):
     return ellipse
 
 
-from collections import Counter, defaultdict
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
 
 # Assuming run_kmeans, plot_ellipse, and other necessary libraries (KMeans, StandardScaler) are imported elsewhere.
 
@@ -477,12 +534,15 @@ def plot_kmeans_colored_by_pop(
         pop_clusters,  # vector of pop_cluster labels, same length as X
         temporal_weight=1.0,
         genetic_weights=np.array([1.0, 1.0]),
-        k=5
+        k=5,
+        migration_lines=None  # NEW: Argument for migration data
 ):
     """
     Performs K-means clustering ONCE, plots the PCA results, and then calls
     plot_kmeans_demographic_style to display the second visualization.
+    Includes ALL migration labels (threshold 0) if migration_lines is provided.
     """
+
 
     # 1. === Run K-means Clustering ONCE ===
 
@@ -494,6 +554,7 @@ def plot_kmeans_colored_by_pop(
     X_for_kmeans = np.column_stack([X_sliced, dates_array])
 
     # Run K-means with the matched data
+    # NOTE: Assuming run_kmeans and the definitions of clusters/centroids are correct and accessible.
     clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
                                      genetic_weights=genetic_weights)
     # ======================================
@@ -584,6 +645,46 @@ def plot_kmeans_colored_by_pop(
         plot_ellipse(ax, mean_time_pc2, cov_time_pc2, cluster_color, alpha=0.7, n_std=1.5);
         ax.scatter(dates_array[mask], pc2[mask], c=cluster_color, s=20, zorder=1)
 
+    # -------------------------------------------------------------
+    # NEW: Add Migration Labels (Ground Truth)
+    # -------------------------------------------------------------
+    if migration_lines is not None:
+        # Define stacking parameters (these must match the logic in _draw_migration_labels)
+        AXES_LABEL_Y_BASE = -0.3
+        STACK_HEIGHT_REL = 0.12
+        LABEL_TIME_WIDTH_YBP = 800
+        MAX_STACK_TRACKS = 6
+
+        # Filter is not necessary since we want score > 0 (all lines)
+        filtered_lines = migration_lines
+
+        # 1. PC1 vs Time
+        _draw_migration_labels(
+            axes=axes[1],
+            filtered_lines=filtered_lines,
+            pop_to_colors=pop_to_colors,
+            AXES_LABEL_Y_BASE=AXES_LABEL_Y_BASE,
+            STACK_HEIGHT_REL=STACK_HEIGHT_REL,
+            LABEL_TIME_WIDTH_YBP=LABEL_TIME_WIDTH_YBP,
+            MAX_STACK_TRACKS=MAX_STACK_TRACKS,
+            is_pc2=False
+        )
+
+        # 2. PC2 vs Time
+        _draw_migration_labels(
+            axes=axes[2],
+            filtered_lines=filtered_lines,
+            pop_to_colors=pop_to_colors,
+            AXES_LABEL_Y_BASE=AXES_LABEL_Y_BASE,
+            STACK_HEIGHT_REL=STACK_HEIGHT_REL,
+            LABEL_TIME_WIDTH_YBP=LABEL_TIME_WIDTH_YBP,
+            MAX_STACK_TRACKS=MAX_STACK_TRACKS,
+            is_pc2=True
+        )
+
+        axes[1].grid(True, linestyle='--', alpha=0.6)
+        axes[2].grid(True, linestyle='--', alpha=0.6)
+
     # Finalizing axes settings and titles
     axes[0].set_xlabel('PC1');
     axes[0].set_ylabel('PC2');
@@ -598,61 +699,173 @@ def plot_kmeans_colored_by_pop(
     axes[2].invert_xaxis()
 
     plt.tight_layout()
+    # Adjust subplot bottom only if labels were actually drawn
+    if migration_lines is not None:
+        plt.subplots_adjust(bottom=0.35)
     plt.show()
 
-    # 2. === Call the Demographic Plotting function with the calculated results ===
-    demographic_title = f"K-Means results (t={temporal_weight}, k={k}) by main populations"
-    plot_kmeans_demographic_style(
-        X=X,
-        dates_array=dates_array,
-        pop_clusters=pop_clusters,
-        k=k,
-        title=demographic_title,
-        pre_calculated_clusters=clusters,
-    )
+
+def prepare_migration_lines(
+        migration_events_data,
+        pop_to_mean_pc1,
+        pop_to_mean_pc2,
+        pop_to_y_pos,
+        pop_to_representative_color
+):
+    """
+    Calculates and structures ALL migration events data for plotting,
+    including the score (m_i * D_i), without applying any threshold filter.
+    Returns a list of dicts.
+    """
+
+    if migration_events_data is None:
+        return []
+
+    migration_lines = []
+
+    for event in migration_events_data:
+        src_pop = event['src']
+        tgt_pop = event['tgt']
+        mig_year = event['year']
+        # Calculate the score for later filtering
+        score = event.get('m_i', 0) * event.get('D_i', 0)
+
+        line_data = {
+            'year': mig_year,
+            'score': score,
+            'score_text': f'{score:.3f}',
+            'color': pop_to_representative_color.get(src_pop, 'black'),
+            'src_pop': src_pop,
+            'tgt_pop': tgt_pop,
+
+            # Y position for the three plots:
+            'y_pos_pop_plot': pop_to_y_pos.get(tgt_pop),
+            'y_pos_pc1_plot': pop_to_mean_pc1.get(tgt_pop),
+            'y_pos_pc2_plot': pop_to_mean_pc2.get(tgt_pop),
+        }
+        migration_lines.append(line_data)
+
+    return migration_lines
 
 
-def plot_kmeans_demographic_style(
+# This function handles the logic for drawing migration labels with waterfall stacking.
+# It should be placed before the main plotting functions.
+def _draw_migration_labels(
+        axes,
+        filtered_lines,
+        pop_to_colors,
+        AXES_LABEL_Y_BASE,
+        STACK_HEIGHT_REL,
+        LABEL_TIME_WIDTH_YBP,
+        MAX_STACK_TRACKS,
+        is_pc2=False  # True for PC2 (uses y_pos_pc2_plot), False for PC1
+):
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # --- Waterfall Stacking Logic ---
+    def get_waterfall_offset(mig_year, occupied_tracks):
+        """Calculates the vertical offset (track level) for a label."""
+        for track_level in range(MAX_STACK_TRACKS):
+            if track_level >= len(occupied_tracks):
+                occupied_tracks.append(mig_year + LABEL_TIME_WIDTH_YBP)
+                return track_level
+
+            if mig_year > occupied_tracks[track_level]:
+                occupied_tracks[track_level] = mig_year + LABEL_TIME_WIDTH_YBP
+                return track_level
+        return MAX_STACK_TRACKS
+
+    # --- Drawing Logic ---
+    sorted_lines = sorted(filtered_lines, key=lambda x: x['year'], reverse=False)
+    y_lim = axes.get_ylim()
+    # Get the transform object from the axes
+    trans = axes.get_xaxis_transform()
+    occupied_tracks = []
+
+    for line_data in sorted_lines:
+        # Determine the correct Y position key
+        y_pos_key = 'y_pos_pc2_plot' if is_pc2 else 'y_pos_pc1_plot'
+
+        # Proceed only if Y position data exists for this graph (PC1 or PC2)
+        if line_data.get(y_pos_key) is not None:
+            mig_year = line_data['year']
+
+            # Calculate Target Population Color (assuming key 0-6 is used for map lookup)
+            target_pop_id = line_data['tgt_pop']
+            # Use the second color in the list as the representative shade for the target pop
+            target_pop_color = pop_to_colors.get(target_pop_id, pop_to_colors[0])[1]
+
+            # Calculate offset and the relative position of the label
+            y_offset = get_waterfall_offset(mig_year, occupied_tracks)
+            label_y_rel = AXES_LABEL_Y_BASE - y_offset * STACK_HEIGHT_REL
+
+            # Format the label text (including adding +1 for 1-7 display)
+            src_pop_index = [k for k, v in pop_to_colors.items() if line_data['color'] in v]
+            src_pop_index = src_pop_index[0] if src_pop_index else 'Src'
+            label_text = f"{src_pop_index + 1} -> {target_pop_id + 1}\n{line_data['score_text']}"
+
+            # 1. Draw the full vertical line
+            axes.plot(
+                [mig_year, mig_year],
+                y_lim,
+                color=target_pop_color,
+                linestyle='--',
+                linewidth=0.5,
+                zorder=3,
+                alpha=0.7
+            )
+
+            # 2. Draw the label
+            axes.text(
+                mig_year, label_y_rel, label_text,
+                fontsize=7, ha='center', va='bottom',
+                color=target_pop_color,
+                fontweight='bold', zorder=6, transform=trans,
+                bbox=dict(facecolor='white', alpha=0.9, edgecolor='gray', boxstyle="round,pad=0.3")
+            )
+    # Restore Y-limits after drawing the lines
+    axes.set_ylim(y_lim)
+
+
+def plot_kmeans_pc1_vs_time_only(
         X,
         dates_array,
-        pop_clusters,  # The TRUE population labels (for color/y-axis mapping)
+        pop_clusters,
         temporal_weight=1.0,
         genetic_weights=np.array([1.0, 1.0]),
         k=5,
-        title=None,
-        # === Argument for pre-calculated clusters is kept, no new arguments added ===
-        pre_calculated_clusters=None
-        # ======================================
+        migration_lines=None
 ):
-    """
-    Visualizes K-means results in a demographic-style plot using colored rectangles over time.
-    It recalculates the temporally-ranked colors internally to ensure consistency with the PCA plot.
-    """
+    # 1. === Run K-means Clustering ONCE ===
 
-    # 1. Use the pre-calculated clusters or run K-means (Fallback)
-    if pre_calculated_clusters is None:
-        # Fallback logic if called directly
-        num_genetic_features = len(genetic_weights)
-        X_sliced = X[:, :num_genetic_features]
-        X_for_kmeans = np.column_stack([X_sliced, dates_array])
-        clusters, _ = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight, genetic_weights=genetic_weights)
-    else:
-        clusters = pre_calculated_clusters
+    # Determine the number of genetic features to use based on the length of genetic_weights.
+    num_genetic_features = len(genetic_weights)
+    X_sliced = X[:, :num_genetic_features]  # Slice X (PCA) to match the number of genetic weights
 
-    # 2. Map K-means clusters to their dominant TRUE population (REQUIRED FOR Y-AXIS GROUPING)
+    # Combine the SLICED PCA data and time data.
+    X_for_kmeans = np.column_stack([X_sliced, dates_array])
+
+    # Run K-means with the matched data
+    # NOTE: Assuming run_kmeans and the definitions of clusters/centroids are correct and accessible.
+    clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
+                                     genetic_weights=genetic_weights)
+    # ======================================
+
+    pc1 = X[:, 0]
+    pc2 = X[:, 1]
+
+    # Step 1: Map each cluster to its dominant population (for consistent coloring)
     cluster_to_pop = {}
-    unique_clusters = np.unique(clusters)
-
-    for cluster_id in unique_clusters:
-        mask = (clusters == cluster_id)
+    for cluster_id in range(k):
+        mask = clusters == cluster_id
         if np.sum(mask) > 0:
-            # Determine the dominant TRUE population for Y-axis grouping
             dominant_pop = Counter(pop_clusters[mask]).most_common(1)[0][0]
             cluster_to_pop[cluster_id] = dominant_pop
         else:
             cluster_to_pop[cluster_id] = -1
 
-    # 3. Define colors for each population (using color palettes)
+    # Step 2: Define colors for each population (using color palettes)
     pop_to_colors = {
         0: ['#c6dbef', '#6baed6', '#08306b', '#9ecae1', '#4292c6', '#2171b5'],
         1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],
@@ -663,104 +876,84 @@ def plot_kmeans_demographic_style(
         6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],
     }
 
-    # 4. RECALCULATE colors based on temporal rank (ENSURES CONSISTENCY WITH PCA PLOT)
-    cluster_avg_dates = {}
-    for cluster_id in unique_clusters:
-        mask = (clusters == cluster_id)
+    # Step 3: Calculate average date for each cluster and sort by date
+    cluster_avg_dates = []
+    for cluster_id in range(k):
+        mask = clusters == cluster_id
         if np.sum(mask) > 0:
-            cluster_avg_dates[cluster_id] = np.mean(dates_array[mask])
-        else:
-            cluster_avg_dates[cluster_id] = np.inf
+            mean_date = np.mean(dates_array[mask])
+            cluster_avg_dates.append((cluster_id, mean_date))
+    cluster_avg_dates.sort(key=lambda x: x[1], reverse=True)  # Sort by date (older = larger YBP = first in list)
 
+    # Step 4: Assign colors to clusters, lighter colors to earlier clusters
     cluster_colors = {}
-    pop_label_groups = defaultdict(list)
-    for cluster_id, pop in cluster_to_pop.items():
-        if pop != -1: pop_label_groups[pop].append(cluster_id)
-
     pop_color_usage = defaultdict(int)
-    for pop, clusters_in_pop in pop_label_groups.items():
-        # Sort by date (older = larger YBP = first in list)
-        clusters_sorted = sorted(clusters_in_pop, key=lambda c: cluster_avg_dates.get(c, np.inf), reverse=True)
-        colors = pop_to_colors.get(pop, ['gray']);
-        n_colors = len(colors)
+    for rank, (cluster_id, _) in enumerate(cluster_avg_dates):
+        dominant_pop = cluster_to_pop[cluster_id]
+        if dominant_pop != -1:
+            colors_list = pop_to_colors[dominant_pop]
+            color_index = pop_color_usage[dominant_pop] % len(colors_list)
+            # Assign color: uses lighter colors (earlier in list) for earlier clusters
+            cluster_colors[cluster_id] = colors_list[color_index]
+            pop_color_usage[dominant_pop] += 1
+        else:
+            cluster_colors[cluster_id] = '#808080'
+    point_colors = [cluster_colors[cl] for cl in clusters]
 
-        # Assign color based on rank within population
-        for idx, cluster_id in enumerate(clusters_sorted):
-            color_idx = pop_color_usage[pop] % n_colors
-            cluster_colors[cluster_id] = colors[color_idx]
-            pop_color_usage[pop] += 1
+    # ==== Plotting PCA Graphs (Only PC1 vs Time) ====
+    fig, ax = plt.subplots(figsize=(9, 5))  # Only one plot for PC1 vs Time
 
-            # 5. Define Y-axis positions based on ALL True Population IDs from the input.
-    # This ensures that all population rows are displayed, even if empty.
-    pops = sorted(np.unique(pop_clusters))
-    pop_to_y_pos = {pop: idx + 1 for idx, pop in enumerate(pops)}
-    rect_height = 0.6
-
-    # -----------------------------------------------------
-    # Plotting setup and Draw Rectangles
-    # -----------------------------------------------------
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    for cluster_id in unique_clusters:
-        try:
-            # Check if this cluster has a color assigned (should be true for all non-empty clusters)
-            if cluster_id not in cluster_colors: continue
-
-            # The color is now the *exact* color from the PCA plot
-            color = cluster_colors[cluster_id]
-
-            dominant_pop = cluster_to_pop[cluster_id]
-
-            # Use the dominant pop to find the correct Y position
-            if dominant_pop not in pop_to_y_pos: continue
-
-            y_pos_center = pop_to_y_pos[dominant_pop]
-            y_start = y_pos_center - rect_height / 2
-            mask = (clusters == cluster_id)
-
-            # Calculate time boundaries
-            min_date = np.min(dates_array[mask])  # Closer to present
-            max_date = np.max(dates_array[mask])  # Further back
-            x_start = max_date
-            width = min_date - max_date  # Width is positive
-
-            rect = patches.Rectangle(
-                (x_start, y_start), width, rect_height,
-                linewidth=1.5, edgecolor='black',
-                facecolor=color,  # USE THE CLUSTER'S UNIQUE COLOR
-                alpha=0.7, zorder=2
-            )
-            ax.add_patch(rect)
-
-        except Exception as e:
-            print(f"Warning: Failed to plot K-means cluster {cluster_id} due to data error: {e}")
+    # Loop over all clusters to draw points and ellipses (Logic remains the same)
+    for cluster_id in range(k):
+        mask = clusters == cluster_id
+        cluster_color = cluster_colors[cluster_id]
+        if np.sum(mask) <= 1:
+            if np.sum(mask) == 1:
+                ax.scatter(dates_array[mask], pc1[mask], c=cluster_color, s=20, zorder=1)
             continue
 
-    # -----------------------------------------------------
-    # Final Aesthetic Settings
-    # -----------------------------------------------------
+        # Drawing on the PC1 vs Time plot
+        cluster_data_time_pc1 = np.stack((dates_array[mask], pc1[mask]), axis=-1)
+        mean_time_pc1 = np.mean(cluster_data_time_pc1, axis=0)
+        cov_time_pc1 = np.cov(cluster_data_time_pc1, rowvar=False)
+        plot_ellipse(ax, mean_time_pc1, cov_time_pc1, cluster_color, alpha=0.7, n_std=1.5)
+        ax.scatter(dates_array[mask], pc1[mask], c=cluster_color, s=20, zorder=1)
 
-    ax.autoscale_view()
-    ax.set_xlabel('Years Before Present (YBP)')
+    # -------------------------------------------------------------
+    # NEW: Add Migration Labels (Ground Truth)
+    # -------------------------------------------------------------
+    if migration_lines is not None:
+        # Define stacking parameters (these must match the logic in _draw_migration_labels)
+        AXES_LABEL_Y_BASE = -0.3
+        STACK_HEIGHT_REL = 0.12
+        LABEL_TIME_WIDTH_YBP = 800
+        MAX_STACK_TRACKS = 6
+
+        # Filter is not necessary since we want score > 0 (all lines)
+        filtered_lines = migration_lines
+
+        # 1. PC1 vs Time
+        _draw_migration_labels(
+            axes=ax,
+            filtered_lines=filtered_lines,
+            pop_to_colors=pop_to_colors,
+            AXES_LABEL_Y_BASE=AXES_LABEL_Y_BASE,
+            STACK_HEIGHT_REL=STACK_HEIGHT_REL,
+            LABEL_TIME_WIDTH_YBP=LABEL_TIME_WIDTH_YBP,
+            MAX_STACK_TRACKS=MAX_STACK_TRACKS,
+            is_pc2=False
+        )
+
+        ax.grid(True, linestyle='--', alpha=0.6)
+
+    # Finalizing axes settings and titles
+    ax.set_xlabel('Years Before Present')
+    ax.set_ylabel('PC1')
+    ax.set_title(f'KMeans Clustering (k={k}, temporal_weight={temporal_weight})')
     ax.invert_xaxis()
-    ax.set_ylabel('Dominant True Population ID')
-
-    # --- START OF MODIFICATION: Adjust Y-axis Labels to start from 1 ---
-    y_ticks = [pop_to_y_pos[pop] for pop in pops]
-    # Add 1 to the original population ID for display purposes (e.g., 0 becomes 1, 1 becomes 2)
-    y_labels = [f'Pop {pop + 1}' for pop in pops]
-    # --- END OF MODIFICATION ---
-
-    ax.set_yticks(y_ticks);
-    ax.set_yticklabels(y_labels);
-    ax.set_ylim(min(y_ticks) - 0.7, max(y_ticks) + 0.7)
-
-    # Add separation lines between dominant populations
-    for y in np.array(y_ticks) + 0.5:
-        ax.axhline(y=y, color='gray', linestyle='--', linewidth=0.5, zorder=1)
-
-    if title:
-        ax.set_title(title)
 
     plt.tight_layout()
+    # Adjust subplot bottom only if labels were actually drawn
+    if migration_lines is not None:
+        plt.subplots_adjust(bottom=0.35)
     plt.show()
