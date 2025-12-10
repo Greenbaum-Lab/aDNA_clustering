@@ -116,7 +116,7 @@ def plot_within_population_clusters(
         for idx, label in enumerate(labels_sorted):
             color_idx = min(idx, n_colors - 1)
             # Assign color: uses lighter colors for earlier (older) clusters
-            label_to_color[label] = colors[-(color_idx + 1)]
+            label_to_color[label] = colors[color_idx]
 
     # -------------------------------------------------------------------
     # Plotting setup

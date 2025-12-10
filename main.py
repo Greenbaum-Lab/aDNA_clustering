@@ -86,6 +86,7 @@ def generate_simulation_data_with_plots(seed=None):
 # simulate_drift([], [], [], True)
 generate_simulation_data_with_plots()
 
+#------------------------------------------------------------------------------------------
 def generate_simulation_data(seed=None):
     if seed is not None:
         np.random.seed(seed)
@@ -265,7 +266,7 @@ def run_many_simulations(num_of_simulations, num_workers):
 
 
 
-num_simulations = 100
+num_simulations = 1000
 num_workers=50
 run_many_simulations(num_simulations, num_workers)
 

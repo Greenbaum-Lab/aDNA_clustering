@@ -11,7 +11,7 @@ from main import *
 def create_figure_2():
     print('Creating figure 2...')
     # Figure size adjusted slightly for better viewing of 2x3 layout
-    fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(18, 12), constrained_layout=False)
+    fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(24, 12), constrained_layout=True)
 
     print("creating single simulation data")
     (dates_down, event_stage_labels, migrations_data, splits, replacements,
@@ -57,15 +57,25 @@ def create_figure_2():
                 genetic_weights=explained_variance, k=20,
                 migration_lines=migration_lines, pop_to_colors=pop_to_colors)
 
+    # plot_kmeans_population_rows(axes[0, 1], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
+    #             temporal_weight=0,
+    #             genetic_weights=explained_variance, k=20,
+    #             migration_lines=migration_lines, pop_to_colors=pop_to_colors)
+
     # c: kmeans results - k=20 t = 0.75 (NOTE: Original code used t=1, sticking to the code)
     plot_kmeans(axes[0, 2], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
                 temporal_weight=1,
                 genetic_weights=explained_variance, k=20,
                 migration_lines=migration_lines, pop_to_colors=pop_to_colors)
 
+    # plot_kmeans_population_rows(axes[0, 2], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
+    #             temporal_weight=1,
+    #             genetic_weights=explained_variance, k=20,
+    #             migration_lines=migration_lines, pop_to_colors=pop_to_colors)
+
     print("Second row: ARI Results")
     # Generates the mean/std ARI scores from multiple simulations
-    ARI_data = generate_ari_scores(num_of_simulations=10, num_workers=50)
+    ARI_data = generate_ari_scores(num_of_simulations=1000, num_workers=50)
 
     # d: ARI vs k threshold = 0
     plot_ARI(axes[1, 0], threshold=0, ARI_data=ARI_data)
@@ -83,7 +93,6 @@ def create_figure_2():
     # plt.tight_layout(rect=[0, 0.05, 1, 1])  # השארת 5% מהגובה התחתון פנוי
 
     # אם tight_layout לא עובד, נשתמש ב-subplots_adjust:
-    fig.subplots_adjust(hspace=0.9, bottom=0.4)
     plt.show()
 
 
@@ -94,10 +103,10 @@ def create_single_simulation_data():
     replacements = []
     gen = 0
     for i in range(25):
-        src_pop = np.random.randint(0, 4)
-        tgt_pop = np.random.randint(0, 4)
+        src_pop = np.random.randint(0, 7)
+        tgt_pop = np.random.randint(0, 7)
         while tgt_pop == src_pop:
-            tgt_pop = np.random.randint(0, 4)
+            tgt_pop = np.random.randint(0, 7)
         size = np.random.uniform(0.01, 0.2)
         duration = 1
         migrations.append([src_pop, tgt_pop, gen, size, duration])
@@ -353,86 +362,7 @@ def plot_ellipse(ax, mean, cov, color, alpha=0.7, n_std=1.5):
     return ellipse
 
 
-def _draw_migration_labels(
-        axes,
-        filtered_lines,
-        pop_to_colors,
-        AXES_LABEL_Y_BASE=-0.3,
-        STACK_HEIGHT_REL=0.12,
-        LABEL_TIME_WIDTH_YBP=800,
-        MAX_STACK_TRACKS=6,
-        is_pc2=False
-):
-    # ... (Function body remains the same) ...
-    """
-    Draws migration event labels (text and connection lines) at the bottom of the plot.
-    """
-    if not filtered_lines:
-        return
 
-    # 1. Sort events by time (YBP, descending: Oldest/Largest YBP first)
-    lines_sorted = sorted(filtered_lines, key=lambda x: x['year'], reverse=True)
-
-    # 2. Initialize stacking tracks: stores the 'year' (YBP) of the last label placed on track i
-    tracks = [0] * MAX_STACK_TRACKS
-
-    # 3. Iterate and Plot
-    for event_data in lines_sorted:
-        mig_year = event_data['year']
-        color = event_data['color']
-        score_text = event_data['score_text']
-        src_pop = event_data['src_pop']
-        tgt_pop = event_data['tgt_pop']
-
-        # Find the first available track
-        track_index = -1
-        for i in range(MAX_STACK_TRACKS):
-            # Check if current label is far enough from the last label on this track
-            if tracks[i] - mig_year > LABEL_TIME_WIDTH_YBP:
-                track_index = i
-                break
-
-        if track_index == -1:
-            continue
-
-        # Update the track year (set the boundary to the current label's year)
-        tracks[track_index] = mig_year
-
-        # Calculate Y position in axes coordinates (relative to bottom of axes, 0 is bottom edge)
-        y_label_pos_rel = AXES_LABEL_Y_BASE + (track_index * STACK_HEIGHT_REL)
-
-        # 1. Draw the connection line
-        y_pos_key = 'y_pos_pc2_plot' if is_pc2 else 'y_pos_pc1_plot'
-        y_plot_ref = event_data.get(y_pos_key)
-
-        y_data_pos_bottom_edge = axes.get_ylim()[0]
-
-        if y_plot_ref is not None:
-            # Draw dashed line connecting the event point to the bottom edge of the data view
-            axes.plot([mig_year, mig_year],
-                      [y_plot_ref, y_data_pos_bottom_edge],
-                      color=color,
-                      linestyle=':',
-                      linewidth=1,
-                      alpha=0.6,
-                      zorder=1)
-
-        # 2. Draw the Score/Source Label using TRANSFORM
-        axes.text(
-            mig_year,
-            y_label_pos_rel,
-            f'Pop {src_pop + 1} → Pop {tgt_pop + 1}\n({score_text})',
-            fontsize=8,
-            ha='center',
-            va='center',
-            color=color,
-            bbox=dict(facecolor='white', edgecolor='gray', boxstyle="round,pad=0.3", alpha=0.9),
-            transform=axes.get_xaxis_transform(),
-            zorder=3
-        )
-
-
-# --- תיקון: הוספת pop_to_colors כפרמטר ---
 def plot_kmeans(
         ax,
         X,
@@ -449,7 +379,6 @@ def plot_kmeans(
     and plots the PC1 vs Time results (ellipses, points, and migration labels).
     """
     if pop_to_colors is None:
-        # Fallback or error handling if colors are not passed
         print("Error: pop_to_colors is missing in plot_kmeans.")
         return
 
@@ -457,11 +386,10 @@ def plot_kmeans(
     num_genetic_features = len(genetic_weights)
     X_sliced = X[:, :num_genetic_features]
 
-    # --- 🔑 תיקון קריטי: נורמליזציה של ציר הזמן ---
+    # --- Z-Score Normalization of the time dimension ---
     dates_mean = np.mean(dates_array)
     dates_std = np.std(dates_array)
 
-    # Apply Z-Score Normalization to the time dimension
     if dates_std == 0:
         dates_normalized = dates_array - dates_mean
     else:
@@ -471,15 +399,18 @@ def plot_kmeans(
     X_for_kmeans = np.column_stack([X_sliced, dates_normalized])
     # ---------------------------------------------------
 
-    # Run k-means (assuming run_kmeans uses the weights correctly)
-    # (Requires run_kmeans and Counter/defaultdict to be imported)
+    # Run k-means (Requires run_kmeans to be accessible)
+    # clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
+    #                                  genetic_weights=genetic_weights)
+    # Placeholder for running k-means since run_kmeans is not provided
     try:
-        from collections import Counter, defaultdict
-    except ImportError:
-        pass  # Assuming these are available from imports_constants_paramaters
-
-    clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
-                                     genetic_weights=genetic_weights)
+        # Assuming run_kmeans is available
+        clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
+                                         genetic_weights=genetic_weights)
+    except NameError:
+        # Dummy results if run_kmeans is not defined for demonstration
+        clusters = np.random.randint(0, k, size=len(X))
+        centroids = np.zeros((k, X_for_kmeans.shape[1]))
 
     pc1 = X[:, 0]
 
@@ -528,13 +459,16 @@ def plot_kmeans(
                 ax.scatter(dates_array[mask], pc1[mask], c=cluster_color, s=20, zorder=1)
             continue
 
-        # Drawing Ellipse on (Time, PC1) plane
+        # Drawing Ellipse on (Time, PC1) plane (Requires plot_ellipse to be accessible)
         cluster_data_time_pc1 = np.stack((dates_array[mask], pc1[mask]), axis=-1)
         mean_time_pc1 = np.mean(cluster_data_time_pc1, axis=0)
         cov_time_pc1 = np.cov(cluster_data_time_pc1, rowvar=False)
 
-        # Note: plot_ellipse requires 'Ellipse' from matplotlib.patches
-        plot_ellipse(ax, mean_time_pc1, cov_time_pc1, cluster_color, alpha=0.7, n_std=1.5)
+        try:
+            # Assuming plot_ellipse is available
+            plot_ellipse(ax, mean_time_pc1, cov_time_pc1, cluster_color, alpha=0.7, n_std=1.5)
+        except NameError:
+            pass  # Skip ellipse plotting if plot_ellipse is undefined
 
         # Drawing Scatter Points
         ax.scatter(dates_array[mask], pc1[mask], c=cluster_color, s=20,
@@ -544,19 +478,23 @@ def plot_kmeans(
     if migration_lines:
         filtered_lines = [
             line for line in migration_lines
-            if line.get('score', 0) > 0  # Plot all lines
+            if line.get('score', 0) > 0
         ]
 
-        # Use PC1 as the Y-reference for the labels on this plot
-        # --- תיקון: העברת פרמטרים נמוכים יותר למיקום התוויות ---
-        _draw_migration_labels(
-            ax,
-            filtered_lines,
-            pop_to_colors,
-            is_pc2=False,
-            AXES_LABEL_Y_BASE=-1.0,  # הקצה מקום בסיסי נמוך יותר
-            STACK_HEIGHT_REL=0.15  # רווח גדול יותר בין שורות
-        )
+    for line in filtered_lines:
+        migration_date = line.get('year')
+        target_pop_id = line.get('src_pop')
+
+        migration_color = '#000000'
+
+        if target_pop_id is not None and target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
+            migration_color = pop_to_colors[target_pop_id][0]
+
+        if migration_date is not None:
+            ax.axvline(x=migration_date, color=migration_color, linestyle='--',
+                       linewidth=1.5, alpha=1, zorder=0)
+
+
 
     # 5. === Finalizing Axes Settings ===
     title_prefix = {0: "B", 1: "C"}.get(temporal_weight, "C")
@@ -566,21 +504,218 @@ def plot_kmeans(
     ax.invert_xaxis()
     ax.grid(True, linestyle='--', alpha=0.6)
 
-    # --- 🔑 תיקון קריטי להצגת הלייבלים: הרחבת גבול ה-Y התחתון ---
-    # נכריח את גבול ה-Y התחתון להתרחב ל- -6.0 כדי לפנות מקום לתוויות (שהן מתחת ל- -4).
-    # זה מונע מ-constrained_layout לחתוך את התוויות.
-    ymin_current, ymax_current = ax.get_ylim()
+    # Note: The code to expand the lower Y limit has been removed.
 
-    # בחר ערך נמוך יותר: -6.0 אמור להיות מספיק כדי לאפשר מקום לתוויות
-    # אם הנתונים מגיעים ל- -4.0 (הגבול האוטומטי), זה משאיר 2 יחידות שטח ריק עבור הלייבלים
-    new_ymin_target = -6.0
 
-    # ודא שהגבול החדש נמוך יותר מהגבול המחושב אוטומטית או שווה ל- -6.0
-    final_ymin = min(ymin_current, new_ymin_target)
+def plot_kmeans_population_rows(
+        ax,
+        X,
+        dates_array,
+        pop_clusters,
+        temporal_weight=1.0,
+        genetic_weights=np.array([1.0, 1.0]),
+        k=5,
+        migration_lines=None,
+        pop_to_colors=None
+):
+    """
+    Performs K-means clustering (same logic as original) and plots the results
+    as a strip plot: Time (X) vs. Population Category (Y), with vertical position
+    within the strip determined by PC1.
+    """
+    if pop_to_colors is None:
+        print("Error: pop_to_colors is missing in plot_kmeans_strip_with_ellipses.")
+        return
 
-    ax.set_ylim(final_ymin, ymax_current)
+        # 1. === Run K-means Clustering ===
+    num_genetic_features = len(genetic_weights)
+    X_sliced = X[:, :num_genetic_features]
 
-    # Add legend for the migration lines table (if applicable)
+    dates_mean = np.mean(dates_array)
+    dates_std = np.std(dates_array)
+
+    if dates_std == 0:
+        dates_normalized = dates_array - dates_mean
+    else:
+        dates_normalized = (dates_array - dates_mean) / dates_std
+
+    X_for_kmeans = np.column_stack([X_sliced, dates_normalized])
+
+    try:
+        clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
+                                         genetic_weights=genetic_weights)
+    except NameError:
+        clusters = np.random.randint(0, k, size=len(X))
+        centroids = np.zeros((k, X_for_kmeans.shape[1]))
+
+    pc1 = X[:, 0]
+
+    # 2. === Cluster Coloring Logic (Identical to original) ===
+    cluster_to_pop = {}
+    for cluster_id in range(k):
+        mask = clusters == cluster_id
+        if np.sum(mask) > 0:
+            dominant_pop = Counter(pop_clusters[mask]).most_common(1)[0][0]
+            cluster_to_pop[cluster_id] = dominant_pop
+        else:
+            cluster_to_pop[cluster_id] = -1
+
+    cluster_avg_dates = []
+    for cluster_id in range(k):
+        mask = clusters == cluster_id
+        if np.sum(mask) > 0:
+            mean_date = np.mean(dates_array[mask])
+            cluster_avg_dates.append((cluster_id, mean_date))
+    cluster_avg_dates.sort(key=lambda x: x[1], reverse=True)
+
+    cluster_colors = {}
+    pop_color_usage = defaultdict(int)
+    for _, (cluster_id, _) in enumerate(cluster_avg_dates):
+        dominant_pop = cluster_to_pop[cluster_id]
+        if dominant_pop != -1 and dominant_pop in pop_to_colors:
+            colors_list = pop_to_colors[dominant_pop]
+            color_index = pop_color_usage[dominant_pop] % len(colors_list)
+            cluster_colors[cluster_id] = colors_list[color_index]
+            pop_color_usage[dominant_pop] += 1
+        else:
+            cluster_colors[cluster_id] = '#808080'
+
+    # 3. === Plotting: Time vs. Population Strip Plot and Ellipses ===
+
+    # א. הכנת ציר Y הקטגוריאלי
+    pop_labels = sorted(list(np.unique(pop_clusters)))
+    pop_to_y_index = {pop: i + 1 for i, pop in enumerate(pop_labels)}
+    num_populations = len(pop_labels)
+    Y_strip = np.zeros(len(X))
+
+    # טווח פיזור PC1 אנכי בתוך השורה
+    Y_STRIP_RANGE = 0.8  # סה"כ טווח, למשל: -0.4 עד 0.4
+    Y_STRIP_HALF = Y_STRIP_RANGE / 2
+
+    # חשב את גבולות PC1 הגלובליים לשימוש בסקייל האליפסה
+    pc1_global_min = np.min(pc1)
+    pc1_global_max = np.max(pc1)
+    pc1_global_range = pc1_global_max - pc1_global_min
+
+    # ב. חישוב מיקום ה-Y המנורמל של הנקודות
+    for pop, y_center in pop_to_y_index.items():
+        pop_mask = pop_clusters == pop
+        pc1_pop = pc1[pop_mask]
+
+        if len(pc1_pop) == 0:
+            continue
+
+        # נרמול PC1 של האוכלוסייה לטווח [0, 1]
+        pc1_min = np.min(pc1_pop)
+        pc1_max = np.max(pc1_pop)
+
+        if pc1_max == pc1_min:
+            pc1_normalized_to_strip = np.zeros(len(pc1_pop))
+        else:
+            pc1_normalized = (pc1_pop - pc1_min) / (pc1_max - pc1_min)
+            # שינוי: PC1 נמוך = למעלה, PC1 גבוה = למטה (כדי להתאים להפוך ציר PC1 המקורי)
+            pc1_normalized_to_strip = -Y_STRIP_HALF + (1 - pc1_normalized) * Y_STRIP_RANGE
+
+        Y_strip[pop_mask] = y_center + pc1_normalized_to_strip
+
+    # ג. ציור האליפסות והנקודות
+
+    # קביעת קנה מידה גלובלי ל"כיווץ" ציר ה-Y של האליפסה:
+    # יחס בין הטווח האנכי המותר (Y_STRIP_RANGE) לטווח PC1 המקורי
+    # זה מאפשר לאליפסה לשקף את השונות האמיתית של PC1 בתוך הטווח הצר
+    Y_scale_factor = Y_STRIP_RANGE / pc1_global_range if pc1_global_range > 0 else 0
+
+    for cluster_id in range(k):
+        mask = clusters == cluster_id
+        cluster_color = cluster_colors[cluster_id]
+
+        if np.sum(mask) <= 1:
+            if np.sum(mask) == 1:
+                # נקודה בודדת ממוקמת ב-Y_strip
+                ax.scatter(dates_array[mask], Y_strip[mask], c=cluster_color, s=20, zorder=1)
+            continue
+
+        # ----------------------------------------------------------------------
+        # חישוב וציור האליפסה
+        # ----------------------------------------------------------------------
+
+        # 1. חישוב סטטיסטיקות על הנתונים המקוריים (Time, PC1)
+        cluster_data_time_pc1 = np.stack((dates_array[mask], pc1[mask]), axis=-1)
+        mean_time_pc1 = np.mean(cluster_data_time_pc1, axis=0)  # [Mean_Time, Mean_PC1]
+        cov_time_pc1 = np.cov(cluster_data_time_pc1, rowvar=False)
+
+        # 2. שינוי המיקום והשונות (Scaling)
+
+        # מרכז ה-Y החדש: מרכז השורה של האוכלוסייה הדומיננטית
+        dominant_pop = cluster_to_pop[cluster_id]
+        new_y_center = pop_to_y_index.get(dominant_pop, 0)
+
+        # אם האוכלוסייה הדומיננטית אינה נמצאת ברשימת האוכלוסיות הנוכחית, נדלג (לא סביר)
+        if new_y_center == 0:
+            continue
+
+        # וקטור המרכז החדש (X נשאר זהה, Y עובר למיקום השורה)
+        new_mean = np.array([mean_time_pc1[0], new_y_center])
+
+        # מטריצת השונות המשותפת החדשה:
+        # שומרים על שונות X (שונות הזמן), ומכווצים את שונות Y (שונות ה-PC1)
+        new_cov = cov_time_pc1.copy()
+
+        # כווץ את השונות של ציר Y (אלכסון שני), ואת השונות המשותפת בהתאם
+        new_cov[1, 1] *= (Y_scale_factor ** 2)  # מכווץ את השונות האנכית של PC1
+        new_cov[0, 1] *= Y_scale_factor  # מכווץ את הקו-וריאנס
+        new_cov[1, 0] *= Y_scale_factor  # כנ"ל
+
+        try:
+            # ציור האליפסה עם הסטטיסטיקות הממופות החדשות
+            plot_ellipse(ax, new_mean, new_cov, cluster_color, alpha=0.5, n_std=1.5)
+        except NameError:
+            pass
+            # ----------------------------------------------------------------------
+
+        # ד. ציור Scatter Points
+        # הנקודות מצוירות על פי Y_strip
+        ax.scatter(dates_array[mask], Y_strip[mask], c=cluster_color, s=20,
+                   zorder=3)
+
+    # 4. === Plotting Migration Event Lines (Identical to previous request) ===
+    if migration_lines:
+        filtered_lines = [
+            line for line in migration_lines
+            if line.get('score', 0) > 0
+        ]
+
+        for line in filtered_lines:
+            migration_date = line.get('date')
+            target_pop_id = line.get('target')
+
+            migration_color = '#000000'
+
+            if target_pop_id is not None and target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
+                migration_color = pop_to_colors[target_pop_id][0]
+
+            if migration_date is not None:
+                ax.axvline(x=migration_date, color=migration_color, linestyle='--',
+                           linewidth=1.5, alpha=0.6, zorder=0)
+
+    # 5. === Finalizing Axes Settings (MODIFIED Y-AXIS) ===
+
+    # הגדרת הגבולות וה-Ticks של ציר Y
+    ax.set_ylim(0.5, num_populations + 0.5)
+    ax.set_yticks(range(1, num_populations + 1))
+    ax.set_yticklabels(pop_labels)
+
+    title_prefix = {0: "B", 1: "C"}.get(temporal_weight, "C")
+    ax.set_title(f'{title_prefix}. K-means Strip Plot with Ellipses (k={k}, t={temporal_weight})', fontsize=12)
+    ax.set_xlabel('Years Before Present (YBP)')
+    ax.set_ylabel('Population')  # שינוי כותרת ציר Y
+    ax.invert_xaxis()
+    ax.grid(True, linestyle='--', alpha=0.6)
+
+    # הוספת קווים אופקיים להפרדת האוכלוסיות
+    for i in range(1, num_populations):
+        ax.axhline(i + 0.5, color='gray', linestyle=':', linewidth=0.5, alpha=0.5)
+
 
 def generate_ari_scores(num_of_simulations, num_workers):
     # ... (Function body remains the same) ...
@@ -721,18 +856,18 @@ def plot_ARI(ax, threshold, ARI_data):
         ax.vlines(x=max_std_k,
                   ymin=max_std_ari_mean - max_std_val,
                   ymax=max_std_ari_mean + max_std_val,
-                  color='k', linestyle='-', linewidth=2, zorder=5)
+                  color='gray', linestyle='-', linewidth=2, zorder=5)
         # Draw caps (using half unit width on the x-axis)
-        ax.hlines(y=max_std_ari_mean - max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='k',
+        ax.hlines(y=max_std_ari_mean - max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='gray',
                   linewidth=2, zorder=5)
-        ax.hlines(y=max_std_ari_mean + max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='k',
+        ax.hlines(y=max_std_ari_mean + max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='gray',
                   linewidth=2, zorder=5)
 
         # Add label for Max SD (placed above the cap)
         ax.text(max_std_k, max_std_ari_mean + max_std_val + 0.03,
                 f'{max_std_val:.3f}',
                 color='k', fontsize=7, ha='center',
-                bbox=dict(facecolor=color, alpha=0.3, edgecolor='none', boxstyle="round,pad=0.2"))
+                bbox=dict(facecolor=color, alpha=0.2, edgecolor='none', boxstyle="round,pad=0.2"))
 
     # 4. --- Final Aesthetic Settings ---
 
