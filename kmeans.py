@@ -74,13 +74,26 @@ def plot_within_population_clusters(
 
     # Define colors for each population (using color palettes)
     pop_to_colors = {
-        0: ['#c6dbef', '#6baed6', '#08306b', '#9ecae1', '#4292c6', '#2171b5'],  # Blue
-        1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],  # Orange
-        2: ['#a1d99b', '#41ab5d', '#00441b', '#74c476', '#238b45', '#1b7837'],  # Green
-        3: ['#fcae91', '#ef3b2c', '#67000d', '#fb6a4a', '#cb181d', '#a50f15'],  # Red
-        4: ['#bcbddc', '#807dba', '#3f007d', '#9e9ac8', '#6a51a3', '#54278f'],  # Purple
-        5: ['#d4dde6', '#6c8597', '#102c3f', '#a1b3c4', '#47697f', '#2c4a5f'],  # Gray-Blue
-        6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],  # Pink
+        # Pop 0: Blue shades (Light to Dark)
+        0: ['#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08306b'],
+
+        # Pop 1: Orange shades (Light to Dark)
+        1: ['#feedde', '#fdd0a2', '#fdae6b', '#fd8d3c', '#f16913', '#d94801'],
+
+        # Pop 2: Green shades (Light to Dark)
+        2: ['#a1d99b', '#74c476', '#41ab5d', '#238b45', '#1b7837', '#00441b'],
+
+        # Pop 3: Red shades (Light to Dark) - תיקון משמעותי כאן:
+        3: ['#fcae91', '#fb6a4a', '#ef3b2c', '#cb181d', '#a50f15', '#67000d'],
+
+        # Pop 4: Purple shades (Light to Dark)
+        4: ['#bcbddc', '#9e9ac8', '#807dba', '#6a51a3', '#54278f', '#3f007d'],
+
+        # Pop 5: Gray-Blue shades (Light to Dark)
+        5: ['#d4dde6', '#a1b3c4', '#6c8597', '#47697f', '#2c4a5f', '#102c3f'],
+
+        # Pop 6: Pink shades (Light to Dark)
+        6: ['#fccde5', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177'],
     }
 
     # Calculate average date for each cluster
@@ -223,13 +236,26 @@ def plot_demographic_events_by_subcluster(
 
     # 2. Color Palettes: Matches the user's color mapping logic (lightest to darkest)
     pop_to_colors = {
-        0: ['#c6dbef', '#6baed6', '#08306b', '#9ecae1', '#4292c6', '#2171b5'],  # Blue
-        1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],  # Orange
-        2: ['#a1d99b', '#41ab5d', '#00441b', '#74c476', '#238b45', '#1b7837'],  # Green
-        3: ['#fcae91', '#ef3b2c', '#67000d', '#fb6a4a', '#cb181d', '#a50f15'],  # Red
-        4: ['#bcbddc', '#807dba', '#3f007d', '#9e9ac8', '#6a51a3', '#54278f'],  # Purple
-        5: ['#d4dde6', '#6c8597', '#102c3f', '#a1b3c4', '#47697f', '#2c4a5f'],  # Gray-Blue
-        6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],  # Pink
+        # Pop 0: Blue shades (Light to Dark)
+        0: ['#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08306b'],
+
+        # Pop 1: Orange shades (Light to Dark)
+        1: ['#feedde', '#fdd0a2', '#fdae6b', '#fd8d3c', '#f16913', '#d94801'],
+
+        # Pop 2: Green shades (Light to Dark)
+        2: ['#a1d99b', '#74c476', '#41ab5d', '#238b45', '#1b7837', '#00441b'],
+
+        # Pop 3: Red shades (Light to Dark) - תיקון משמעותי כאן:
+        3: ['#fcae91', '#fb6a4a', '#ef3b2c', '#cb181d', '#a50f15', '#67000d'],
+
+        # Pop 4: Purple shades (Light to Dark)
+        4: ['#bcbddc', '#9e9ac8', '#807dba', '#6a51a3', '#54278f', '#3f007d'],
+
+        # Pop 5: Gray-Blue shades (Light to Dark)
+        5: ['#d4dde6', '#a1b3c4', '#6c8597', '#47697f', '#2c4a5f', '#102c3f'],
+
+        # Pop 6: Pink shades (Light to Dark)
+        6: ['#fccde5', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177'],
     }
 
     # 3. Calculate average date for each sub-cluster
@@ -574,13 +600,26 @@ def plot_kmeans_colored_by_pop(
 
     # Step 2: Define colors for each population (using color palettes)
     pop_to_colors = {
-        0: ['#c6dbef', '#6baed6', '#08306b', '#9ecae1', '#4292c6', '#2171b5'],
-        1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],
-        2: ['#a1d99b', '#41ab5d', '#00441b', '#74c476', '#238b45', '#1b7837'],
-        3: ['#fcae91', '#ef3b2c', '#67000d', '#fb6a4a', '#cb181d', '#a50f15'],
-        4: ['#bcbddc', '#807dba', '#3f007d', '#9e9ac8', '#6a51a3', '#54278f'],
-        5: ['#d4dde6', '#6c8597', '#102c3f', '#a1b3c4', '#47697f', '#2c4a5f'],
-        6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],
+        # Pop 0: Blue shades (Light to Dark)
+        0: ['#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08306b'],
+
+        # Pop 1: Orange shades (Light to Dark)
+        1: ['#feedde', '#fdd0a2', '#fdae6b', '#fd8d3c', '#f16913', '#d94801'],
+
+        # Pop 2: Green shades (Light to Dark)
+        2: ['#a1d99b', '#74c476', '#41ab5d', '#238b45', '#1b7837', '#00441b'],
+
+        # Pop 3: Red shades (Light to Dark) - תיקון משמעותי כאן:
+        3: ['#fcae91', '#fb6a4a', '#ef3b2c', '#cb181d', '#a50f15', '#67000d'],
+
+        # Pop 4: Purple shades (Light to Dark)
+        4: ['#bcbddc', '#9e9ac8', '#807dba', '#6a51a3', '#54278f', '#3f007d'],
+
+        # Pop 5: Gray-Blue shades (Light to Dark)
+        5: ['#d4dde6', '#a1b3c4', '#6c8597', '#47697f', '#2c4a5f', '#102c3f'],
+
+        # Pop 6: Pink shades (Light to Dark)
+        6: ['#fccde5', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177'],
     }
 
     # Step 3: Calculate average date for each cluster and sort by date
@@ -867,13 +906,26 @@ def plot_kmeans_pc1_vs_time_only(
 
     # Step 2: Define colors for each population (using color palettes)
     pop_to_colors = {
-        0: ['#c6dbef', '#6baed6', '#08306b', '#9ecae1', '#4292c6', '#2171b5'],
-        1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],
-        2: ['#a1d99b', '#41ab5d', '#00441b', '#74c476', '#238b45', '#1b7837'],
-        3: ['#fcae91', '#ef3b2c', '#67000d', '#fb6a4a', '#cb181d', '#a50f15'],
-        4: ['#bcbddc', '#807dba', '#3f007d', '#9e9ac8', '#6a51a3', '#54278f'],
-        5: ['#d4dde6', '#6c8597', '#102c3f', '#a1b3c4', '#47697f', '#2c4a5f'],
-        6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],
+        # Pop 0: Blue shades (Light to Dark)
+        0: ['#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08306b'],
+
+        # Pop 1: Orange shades (Light to Dark)
+        1: ['#feedde', '#fdd0a2', '#fdae6b', '#fd8d3c', '#f16913', '#d94801'],
+
+        # Pop 2: Green shades (Light to Dark)
+        2: ['#a1d99b', '#74c476', '#41ab5d', '#238b45', '#1b7837', '#00441b'],
+
+        # Pop 3: Red shades (Light to Dark) - תיקון משמעותי כאן:
+        3: ['#fcae91', '#fb6a4a', '#ef3b2c', '#cb181d', '#a50f15', '#67000d'],
+
+        # Pop 4: Purple shades (Light to Dark)
+        4: ['#bcbddc', '#9e9ac8', '#807dba', '#6a51a3', '#54278f', '#3f007d'],
+
+        # Pop 5: Gray-Blue shades (Light to Dark)
+        5: ['#d4dde6', '#a1b3c4', '#6c8597', '#47697f', '#2c4a5f', '#102c3f'],
+
+        # Pop 6: Pink shades (Light to Dark)
+        6: ['#fccde5', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177'],
     }
 
     # Step 3: Calculate average date for each cluster and sort by date

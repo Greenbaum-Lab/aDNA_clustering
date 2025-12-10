@@ -42,7 +42,7 @@ RPC_GEN = 2      # Generation of replacement
 # --- Simulation parameters ---
 generations = 400
 generation_step = 25
-num_of_populations = 5
+num_of_populations = 2
 min_population_size = 500
 max_population_size = 1500
 POP_SIZE = 750              # Fixed pop size if not using random range

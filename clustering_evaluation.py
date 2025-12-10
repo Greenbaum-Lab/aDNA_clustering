@@ -195,7 +195,7 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
         number_of_subpopulations = np.unique(event_stage_labels).size
         treshold_number_of_subpopulations[th] = number_of_subpopulations
 
-        temporal_weight_values = [0, 0.1, 0.2, 0.5, 0.75, 1, 10]
+        temporal_weight_values = [0, 0.25, 0.5, 1, 10]
         k_values = np.arange(1, 41, 1)
         scores_for_t = calculate_ARI_vs_t(X_down, temporal_weight_values, k_values, pop_ids_down, event_stage_labels,
                                           explained_variance)

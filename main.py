@@ -181,11 +181,11 @@ def run_many_simulations(num_of_simulations, num_workers):
             ax.vlines(x=max_std_k,
                       ymin=max_std_ari_mean - max_std_val,
                       ymax=max_std_ari_mean + max_std_val,
-                      color='k', linestyle='-', linewidth=2, zorder=5)
+                      color='gray', linestyle='--', linewidth=2, zorder=5)
             # Draw caps (using half unit width on the x-axis)
-            ax.hlines(y=max_std_ari_mean - max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='k',
+            ax.hlines(y=max_std_ari_mean - max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='gray',
                       linewidth=2, zorder=5)
-            ax.hlines(y=max_std_ari_mean + max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='k',
+            ax.hlines(y=max_std_ari_mean + max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='gray',
                       linewidth=2, zorder=5)
 
             # Add label for Max SD (placed above the cap)
@@ -265,7 +265,7 @@ def run_many_simulations(num_of_simulations, num_workers):
 
 
 
-num_simulations = 10
+num_simulations = 100
 num_workers=50
 run_many_simulations(num_simulations, num_workers)
 
