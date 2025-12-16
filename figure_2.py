@@ -368,6 +368,8 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
             )
             ax.add_patch(rect)
 
+
+
         except Exception as e:
             # print(f"Warning: Failed to plot label {label} due to data error: {e}")
             continue
@@ -401,6 +403,7 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
                     alpha=1.0
                 )
 
+
                 # 2. Add the score label
                 score_text = line_data.get('score_text', f"{line_data.get('score', 0):.3f}")
                 # Plot the score above the bar
@@ -414,8 +417,8 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
                     fontweight='bold',
                     zorder=5
                 )
-            plot_dashed_migration_lines(ax, migration_lines, pop_to_colors
-                                        , draw_detailed=False, score_threshold=0)
+            # plot_dashed_migration_lines(ax, migration_lines, pop_to_colors
+            #                             , draw_detailed=False, score_threshold=0)
 
     # -----------------------------------------------------
     # Final Aesthetic Settings
@@ -545,16 +548,16 @@ def plot_dashed_migration_lines(
                         alpha=1, zorder=1)
 
             # 3.4. Add D*m Annotation
-            if score is not None and score > 0:
-                ax.annotate(
-                    f'{score:.3f}',
-                    xy=(migration_date, DYNAMIC_ANNOTATION_Y),
-                    xytext=(0, 5),
-                    textcoords='offset points',
-                    ha='center',
-                    color='k',
-                    bbox=dict(facecolor='white', alpha=1, edgecolor='none', boxstyle='round,pad=0.2')
-                )
+            # if score is not None and score > 0:
+            #     ax.annotate(
+            #         f'{score:.3f}',
+            #         xy=(migration_date, DYNAMIC_ANNOTATION_Y),
+            #         xytext=(0, 5),
+            #         textcoords='offset points',
+            #         ha='center',
+            #         color='k',
+            #         bbox=dict(facecolor='white', alpha=1, edgecolor='none', boxstyle='round,pad=0.2')
+            #     )
 
         else:
             # --- SIMPLE PLOTTING (For Plot A: Ground Truth) ---
@@ -722,11 +725,11 @@ def plot_migration_arrows(
             y=y_src,  # Start Y position
             dx=0,  # No movement in X
             dy=dy,  # Total movement in Y (from src to tgt)
-            head_width=200,
+            head_width=300,
             head_length=0.4,
             fc=line_color,
             ec='k',
-            linewidth=calculated_linewidth,  # Use linewidth for the body
+            linewidth= calculated_linewidth if calculated_linewidth> 1 else 1,  # Use linewidth for the body
             length_includes_head=True,
             alpha=1,
             zorder=4
@@ -748,6 +751,98 @@ def plot_migration_arrows(
             #     zorder=5
             # )
 
+
+def plot_migration_markers(
+        ax,
+        caught_migration_lines,
+        pop_to_colors
+):
+    """
+    Plots diamond markers representing caught migration events at the
+    Target Population's mean PC1 position (y_tgt).
+    Marker size is dynamically scaled by the D*m score, and color
+    represents the destination cluster.
+    """
+
+    if not caught_migration_lines:
+        return
+
+    scores = np.array([line.get('score') for line in caught_migration_lines])
+
+    # 1. Calculate Dynamic Parameters for Marker Size (S)
+
+    # טווח הגדלים (S) של המעוין. הערכים נבחרים ניסיונית.
+    # Matplotlib משתמשת בשטח המעוין, לא ברדיוס/אורך צלע.
+    MIN_MARKER_SIZE = 50
+    MAX_MARKER_SIZE = 400
+    SIZE_RANGE = MAX_MARKER_SIZE - MIN_MARKER_SIZE
+
+    # Check for score range for normalization
+    if scores.size > 0 and np.max(scores) > np.min(scores):
+        min_score = np.min(scores)
+        max_score = np.max(scores)
+        score_range = max_score - min_score
+    else:
+        score_range = 0
+        min_score = 0
+
+    # 2. Plotting the Markers
+    for line in caught_migration_lines:
+        migration_date = line.get('year')
+        target_pop_id = line.get('tgt_pop')
+        score = line.get('score')
+
+        # Retrieve calculated Y position (Target only)
+        y_tgt = line.get('local_y_center_tgt')
+
+        if y_tgt is None:
+            continue  # Skip if Y position was not calculated
+
+        # Determine the arrow color (based on Target Pop)
+        line_color = '#000000'
+        if target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
+            # משתמשים בפרמטר השני (1) ברשימת הצבעים של האוכלוסייה, אם יש
+            line_color = pop_to_colors[target_pop_id][1]
+
+        # 2.1. Calculate Variable Marker Size (S)
+        calculated_size = MIN_MARKER_SIZE
+        if score_range > 1e-6:
+            normalized_score = (score - min_score) / score_range
+            calculated_size = MIN_MARKER_SIZE + (normalized_score * SIZE_RANGE)
+        else:
+            calculated_size = (MIN_MARKER_SIZE + MAX_MARKER_SIZE) / 2
+
+        # 2.2. Draw the Diamond Marker using ax.scatter
+
+        # שימוש ב-ax.scatter עם marker='D' (מעוין)
+        ax.scatter(
+            x=migration_date,  # X position (Time)
+            y=y_tgt,  # Y position (Target PC1 center)
+            s=calculated_size,  # Size proportional to D*m
+            marker='D',  # Diamond shape
+            facecolors=line_color,  # Fill color (Target cluster color)
+            edgecolors='k',  # Edge color (Black)
+            linewidths=1.5,  # Thickness of the black edge
+            alpha=1,
+            zorder=4
+        )
+
+        # 2.3. Add D*m Annotation (positioned next to the marker)
+        if score is not None and score > 0:
+            # Place annotation slightly offset from the marker
+            # Note: Offset points (15, 0) moves the text 15 points to the right
+            ax.annotate(
+                f'{score:.3f}',
+                xy=(migration_date, y_tgt),
+                xytext=(15, 0),
+                textcoords='offset points',
+                ha='left',  # Align text to the left of the offset
+                va='center',  # Vertically centered on the marker
+                color='k',
+                fontsize=9,
+                bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', boxstyle='round,pad=0.2'),
+                zorder=5
+            )
 
 def plot_ellipse(ax, mean, cov, color, alpha=0.7, n_std=1.5):
     # ... (Function body remains the same) ...
@@ -1016,7 +1111,7 @@ def plot_kmeans(
 
     # 4.2. Plot the arrows using the dedicated function.
     plot_migration_arrows(ax, caught_migration_lines_with_pos, pop_to_colors)
-    plot_dashed_migration_lines(ax, caught_migration_lines, pop_to_colors, draw_detailed=True, score_threshold=0)
+    # plot_dashed_migration_lines(ax, caught_migration_lines, pop_to_colors, draw_detailed=True, score_threshold=0)
 
     # 5. === Finalizing Axes Settings ===
     ax.tick_params(axis='both',
