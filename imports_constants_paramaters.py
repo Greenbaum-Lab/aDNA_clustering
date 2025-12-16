@@ -20,6 +20,8 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.patches import Ellipse
+import pickle
+import os
 
 
 # --- Index constants for data structure referencing ---

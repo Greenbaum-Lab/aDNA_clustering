@@ -1,21 +1,108 @@
+
 from imports_constants_paramaters import *
 from kmeans import *
 from clustering_evaluation import *
 from simulation import *
 from main import *
 
+# --- GLOBAL CACHE VARIABLES AND FILE NAMES ---
 
-# ----------------------------------------
+_CACHED_SIMULATION_DATA = None
+_CACHED_ARI_DATA = None
+
+# Define file names for persistent storage
+SIM_CACHE_FILE = 'cached_single_sim_data.pkl'
+ARI_CACHE_FILE = 'cached_ari_data.pkl'
+
+
+# ---------------------------------------------
+
+def get_single_simulation_data():
+    """
+    Retrieves the single simulation data.
+    It loads the specific, consistent simulation history from disk if available,
+    or runs the simulation once and saves the result for future runs.
+    """
+    global _CACHED_SIMULATION_DATA
+
+    # 1. Check in-memory cache
+    if _CACHED_SIMULATION_DATA is not None:
+        print('Using cached single simulation data (in-memory).')
+        return _CACHED_SIMULATION_DATA
+
+    # 2. Check disk cache
+    if os.path.exists(SIM_CACHE_FILE):
+        print(f"Loading consistent single simulation data from {SIM_CACHE_FILE}...")
+        try:
+            with open(SIM_CACHE_FILE, 'rb') as f:
+                _CACHED_SIMULATION_DATA = pickle.load(f)
+                return _CACHED_SIMULATION_DATA
+        except Exception as e:
+            print(f"Error loading {SIM_CACHE_FILE}: {e}. Rerunning simulation.")
+            # If loading fails, fall through to re-run the simulation
+
+    # 3. Run simulation (only if not cached anywhere)
+    print('Running create_single_simulation_data (will save result for consistency)...')
+    _CACHED_SIMULATION_DATA = create_single_simulation_data()
+
+    # 4. Save to disk to lock in this specific simulation for all future runs
+    print(f"Saving consistent single simulation data to {SIM_CACHE_FILE}...")
+    try:
+        with open(SIM_CACHE_FILE, 'wb') as f:
+            pickle.dump(_CACHED_SIMULATION_DATA, f)
+    except Exception as e:
+        print(f"Warning: Could not save single simulation data to disk: {e}")
+
+    return _CACHED_SIMULATION_DATA
+
+
+def get_ARI_scores():
+    """
+    Retrieves the ARI scores.
+    Loads the mean/std ARI performance results from disk, or runs the computation
+    once and saves the results.
+    """
+    global _CACHED_ARI_DATA
+
+    # 1. Check in-memory cache
+    if _CACHED_ARI_DATA is not None:
+        print('Using cached ARI data (in-memory).')
+        return _CACHED_ARI_DATA
+
+    # 2. Check disk cache
+    if os.path.exists(ARI_CACHE_FILE):
+        print(f"Loading ARI data from {ARI_CACHE_FILE}...")
+        try:
+            with open(ARI_CACHE_FILE, 'rb') as f:
+                _CACHED_ARI_DATA = pickle.load(f)
+                return _CACHED_ARI_DATA
+        except Exception as e:
+            print(f"Error loading {ARI_CACHE_FILE}: {e}. Rerunning ARI simulation.")
+            # If loading fails, fall through to re-run the simulation
+
+    # 3. Run ARI simulation (only if not cached anywhere)
+    print('Running NEW generate_ari_scores (will save result for consistency)...')
+    _CACHED_ARI_DATA = generate_ari_scores(num_of_simulations=1000, num_workers=50)
+
+    # 4. Save to disk
+    print(f"Saving ARI data to {ARI_CACHE_FILE}...")
+    try:
+        with open(ARI_CACHE_FILE, 'wb') as f:
+            pickle.dump(_CACHED_ARI_DATA, f)
+    except Exception as e:
+        print(f"Warning: Could not save ARI data to disk: {e}")
+
+    return _CACHED_ARI_DATA
 
 
 def create_figure_2():
     print('Creating figure 2...')
     # Figure size adjusted slightly for better viewing of 2x3 layout
-    fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(24, 12), constrained_layout=True)
+    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(24, 24), constrained_layout=True)
 
     print("creating single simulation data")
     (dates_down, event_stage_labels, migrations_data, splits, replacements,
-     X_down, pop_ids_down, explained_variance, migration_lines) = create_single_simulation_data()
+     X_down, pop_ids_down, explained_variance, migration_lines) = get_single_simulation_data()
 
     print(f"Number of event stages: {len(np.unique(event_stage_labels))}")
     print("First row: Simulation Example")
@@ -25,20 +112,21 @@ def create_figure_2():
         # Pop 0: Blue shades (Light to Dark)
         0: ['#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08306b'],
 
-        # Pop 1: Orange shades (Light to Dark)
-        1: ['#feedde', '#fdd0a2', '#fdae6b', '#fd8d3c', '#f16913', '#d94801'],
+        # Pop 1:  Red shades (Light to Dark)
+        #
+        1: ['#fcae91', '#fb6a4a', '#ef3b2c', '#cb181d', '#a50f15', '#67000d'],
 
         # Pop 2: Green shades (Light to Dark)
         2: ['#a1d99b', '#74c476', '#41ab5d', '#238b45', '#1b7837', '#00441b'],
 
-        # Pop 3: Red shades (Light to Dark) - תיקון משמעותי כאן:
-        3: ['#fcae91', '#fb6a4a', '#ef3b2c', '#cb181d', '#a50f15', '#67000d'],
+        # Pop 3: brown shades (Light to Dark)
+        3: ['#f0e0d6', '#c9a997', '#a17a60', '#7a4f35', '#572e18', '#381604'],  # Earthy/Brown tones
 
         # Pop 4: Purple shades (Light to Dark)
         4: ['#bcbddc', '#9e9ac8', '#807dba', '#6a51a3', '#54278f', '#3f007d'],
 
-        # Pop 5: Gray-Blue shades (Light to Dark)
-        5: ['#d4dde6', '#a1b3c4', '#6c8597', '#47697f', '#2c4a5f', '#102c3f'],
+        # Pop 5: yellow shades (Light to Dark)
+        5: ['#fff7bc', '#fee38b', '#fec44f', '#fe9929', '#ec7014', '#cc4c02'],
 
         # Pop 6: Pink shades (Light to Dark)
         6: ['#fccde5', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177'],
@@ -52,9 +140,9 @@ def create_figure_2():
                       pop_to_colors=pop_to_colors)  # <-- Added pop_to_colors
 
     # b: kmeans results - k=20 t = 0
-    plot_kmeans(axes[0, 1], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
+    plot_kmeans(axes[1, 0], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
                 temporal_weight=0,
-                genetic_weights=explained_variance, k=20,
+                genetic_weights=explained_variance, k=15,
                 migration_lines=migration_lines, pop_to_colors=pop_to_colors)
 
     # plot_kmeans_population_rows(axes[0, 1], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
@@ -63,8 +151,8 @@ def create_figure_2():
     #             migration_lines=migration_lines, pop_to_colors=pop_to_colors)
 
     # c: kmeans results - k=20 t = 0.75 (NOTE: Original code used t=1, sticking to the code)
-    plot_kmeans(axes[0, 2], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
-                temporal_weight=1,
+    plot_kmeans(axes[2, 0], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
+                temporal_weight=0.5,
                 genetic_weights=explained_variance, k=20,
                 migration_lines=migration_lines, pop_to_colors=pop_to_colors)
 
@@ -75,15 +163,16 @@ def create_figure_2():
 
     print("Second row: ARI Results")
     # Generates the mean/std ARI scores from multiple simulations
-    ARI_data = generate_ari_scores(num_of_simulations=1000, num_workers=50)
+    ARI_data = get_ARI_scores()
+
 
     # d: ARI vs k threshold = 0
-    plot_ARI(axes[1, 0], threshold=0, ARI_data=ARI_data)
+    plot_ARI(axes[0, 1], threshold=0, ARI_data=ARI_data)
     # e: ARI vs k threshold = 0.004
     plot_ARI(axes[1, 1], threshold=0.004, ARI_data=ARI_data)
 
     # f: ARI vs k threshold = 0.008
-    plot_ARI(axes[1, 2], threshold=0.008, ARI_data=ARI_data)
+    plot_ARI(axes[2, 1], threshold=0.008, ARI_data=ARI_data)
 
     # Use constrained_layout=True in subplots for better automatic spacing
     # fig.subplots_adjust(...) # Commented out as constrained_layout is better
@@ -93,6 +182,7 @@ def create_figure_2():
     # plt.tight_layout(rect=[0, 0.05, 1, 1])  # השארת 5% מהגובה התחתון פנוי
 
     # אם tight_layout לא עובד, נשתמש ב-subplots_adjust:
+    plt.savefig("figure2.svg", format='svg')
     plt.show()
 
 
@@ -318,6 +408,8 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
                     fontweight='bold',
                     zorder=5
                 )
+            plot_dashed_migration_lines(ax, migration_lines, pop_to_colors
+                                        , draw_detailed=False, score_threshold=0)
 
     # -----------------------------------------------------
     # Final Aesthetic Settings
@@ -340,6 +432,122 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
 
     if title:
         ax.set_title(title, fontsize=12)
+
+
+def plot_dashed_migration_lines(
+        ax,
+        migration_lines,
+        pop_to_colors,
+        draw_detailed=False,
+        score_threshold=0
+):
+    """
+    Plots vertical lines representing migration events on a given axis (ax).
+    It supports two modes: simple (for Plot A) and detailed/dynamic (for Plots B/C).
+
+    Parameters:
+    ax (matplotlib.axes.Axes): The Axes object to draw on.
+    migration_lines (list): List of dictionaries with 'year', 'src_pop', and 'score' (D*m).
+    pop_to_colors (dict): Dictionary mapping population IDs to color lists.
+    draw_detailed (bool): If True, plots variable linewidth, shading, and annotations (for B/C).
+    score_threshold (float): The D*m score threshold above which a line should be drawn.
+    """
+
+    # 1. --- Filter the Data based on the Score Threshold ---
+    filtered_lines = [
+        line for line in migration_lines
+        if line.get('score', 0) >= score_threshold
+    ]
+
+    if not filtered_lines:
+        return
+
+    # 2. --- Calculate Dynamic Parameters (Only if needed) ---
+    if draw_detailed:
+        scores = np.array([line.get('score') for line in filtered_lines])
+
+        # Check if there's a range to normalize against
+        if scores.size > 0:
+            min_score = np.min(scores)
+            max_score = np.max(scores)
+            score_range = max_score - min_score
+
+            # Linewidth constants
+            MIN_LINEWIDTH = 1
+            MAX_LINEWIDTH = 4
+            LINEWIDTH_RANGE = MAX_LINEWIDTH - MIN_LINEWIDTH
+
+            # Get axis ranges for dynamic sizing/positioning
+            x_min, x_max = ax.get_xlim()
+            y_min, y_max = ax.get_ylim()
+            x_range = x_max - x_min
+            y_range = y_max - y_min
+
+            # Dynamic Shading Width (1% of the total time range)
+            DYNAMIC_SHADING_WIDTH = x_range * 0.01
+            # Dynamic Annotation Y position (5% below the top limit)
+            DYNAMIC_ANNOTATION_Y = y_max - y_range * 0.05
+        else:
+            score_range = 0
+    else:
+        # Simple mode constants (for Plot A)
+        calculated_linewidth = 1.0  # Uniform thin line
+
+    # 3. --- Plotting the Lines ---
+    for line in filtered_lines:
+        migration_date = line.get('year')
+        target_pop_id = line.get('tgt_pop')
+        score = line.get('score')
+
+        # Determine the line color based on the target population
+        line_color = '#000000'  # Default black
+        if target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
+            # Use the primary color of the target population
+            line_color = pop_to_colors[target_pop_id][0]
+
+        if migration_date is None:
+            continue
+
+        if draw_detailed:
+            # --- DETAILED PLOTTING (For Plots B and C) ---
+
+            # 3.1. Calculate Variable Linewidth
+            calculated_linewidth = MIN_LINEWIDTH
+            if score_range > 1e-6:
+                normalized_score = (score - min_score) / score_range
+                calculated_linewidth = MIN_LINEWIDTH + (normalized_score * LINEWIDTH_RANGE)
+
+            # 3.2. Draw Dynamic Background Shading
+            ax.axvspan(
+                migration_date - DYNAMIC_SHADING_WIDTH / 2,
+                migration_date + DYNAMIC_SHADING_WIDTH / 2,
+                color=line_color,
+                alpha=0,
+                zorder=0
+            )
+
+            # 3.3. Draw the Vertical Line
+            ax.axvline(x=migration_date, color=line_color, linestyle='--',
+                       linewidth=calculated_linewidth, alpha=1, zorder=1)
+
+            # 3.4. Add D*m Annotation
+            if score is not None and score > 0:
+                ax.annotate(
+                    f'{score:.3f}',
+                    xy=(migration_date, DYNAMIC_ANNOTATION_Y),
+                    xytext=(0, 5),
+                    textcoords='offset points',
+                    ha='center',
+                    fontsize=8,
+                    color='k',
+                    bbox=dict(facecolor='white', alpha=1, edgecolor='none', boxstyle='round,pad=0.2')
+                )
+
+        else:
+            # --- SIMPLE PLOTTING (For Plot A: Ground Truth) ---
+            # Draws a uniform, simple dashed line without labels or complex features.
+            ax.axvline(x=migration_date, color=line_color, linestyle='--',
+                       linewidth=1.0, alpha=0.7, zorder=0)
 
 
 def plot_ellipse(ax, mean, cov, color, alpha=0.7, n_std=1.5):
@@ -475,24 +683,9 @@ def plot_kmeans(
                    zorder=3)
 
     # 4. === Plotting Migration Event Labels ===
-    if migration_lines:
-        filtered_lines = [
-            line for line in migration_lines
-            if line.get('score', 0) > 0
-        ]
-
-    for line in filtered_lines:
-        migration_date = line.get('year')
-        target_pop_id = line.get('src_pop')
-
-        migration_color = '#000000'
-
-        if target_pop_id is not None and target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
-            migration_color = pop_to_colors[target_pop_id][0]
-
-        if migration_date is not None:
-            ax.axvline(x=migration_date, color=migration_color, linestyle='--',
-                       linewidth=1.5, alpha=1, zorder=0)
+    plot_dashed_migration_lines(ax, migration_lines, pop_to_colors,
+                                draw_detailed=True,
+                                score_threshold=0)
 
 
 
@@ -500,6 +693,7 @@ def plot_kmeans(
     title_prefix = {0: "B", 1: "C"}.get(temporal_weight, "C")
     ax.set_title(f'{title_prefix}. KMeans Clustering (k={k}, t={temporal_weight})', fontsize=12)
     ax.set_xlabel('Years Before Present (YBP)')
+    ax.set_xlim(-500, 10500)
     ax.set_ylabel('PC1')
     ax.invert_xaxis()
     ax.grid(True, linestyle='--', alpha=0.6)
@@ -700,7 +894,7 @@ def plot_kmeans_population_rows(
 
     # 5. === Finalizing Axes Settings (MODIFIED Y-AXIS) ===
 
-    # הגדרת הגבולות וה-Ticks של ציר Y
+
     ax.set_ylim(0.5, num_populations + 0.5)
     ax.set_yticks(range(1, num_populations + 1))
     ax.set_yticklabels(pop_labels)
@@ -708,11 +902,12 @@ def plot_kmeans_population_rows(
     title_prefix = {0: "B", 1: "C"}.get(temporal_weight, "C")
     ax.set_title(f'{title_prefix}. K-means Strip Plot with Ellipses (k={k}, t={temporal_weight})', fontsize=12)
     ax.set_xlabel('Years Before Present (YBP)')
-    ax.set_ylabel('Population')  # שינוי כותרת ציר Y
+    ax.set_xlim(10000, 0)
+    ax.set_ylabel('Population')  #
     ax.invert_xaxis()
     ax.grid(True, linestyle='--', alpha=0.6)
 
-    # הוספת קווים אופקיים להפרדת האוכלוסיות
+
     for i in range(1, num_populations):
         ax.axhline(i + 0.5, color='gray', linestyle=':', linewidth=0.5, alpha=0.5)
 
@@ -803,6 +998,7 @@ def generate_ari_scores(num_of_simulations, num_workers):
 def plot_ARI(ax, threshold, ARI_data):
     """
     Plots ARI vs K for a specific threshold, showing mean and SD as Error Bars.
+    The error bars are jittered (horizontally offset) to prevent stacking.
     """
 
     # Define parameter ranges used for plotting (must match ranges in simulation)
@@ -830,21 +1026,25 @@ def plot_ARI(ax, threshold, ARI_data):
     ax.set_xlabel('Number of clusters (K)')
     ax.set_ylabel('ARI')
 
-    # Only set ylabel for the first subplot
+    # Only set ylabel for the first subplot (D) to avoid clutter in E and F
     if threshold == 0.004 or threshold == 0.008:
         ax.set_ylabel('')
 
-    # 3. --- Draw Lines and Error Bars ---
+    # 3. --- Draw Lines and Jittered Error Bars ---
+
+    # Define fixed offsets for jittering (e.g., [ -0.6, -0.3, 0, 0.3, 0.6 ] units of K)
+    num_t_values = len(temporal_weight_values_for_t)
+    x_offsets = np.linspace(-0.6, 0.6, num_t_values)
 
     for i, t_val in enumerate(temporal_weight_values_for_t):
         mean_vals = mean_t[i]
         std_vals = std_t[i]
 
-        # Draw the mean line
+        # Draw the mean line (in the original position)
         line, = ax.plot(k_values_for_t, mean_vals, label=f't={t_val}')
         color = line.get_color()
 
-        # --- Draw only the Max SD as Vertical Error Bars (Matching the image) ---
+        # --- Draw only the Max SD as Vertical Error Bars ---
 
         # Find the index of the maximum standard deviation
         max_std_index = np.argmax(std_vals)
@@ -852,19 +1052,28 @@ def plot_ARI(ax, threshold, ARI_data):
         max_std_ari_mean = mean_vals[max_std_index]
         max_std_val = std_vals[max_std_index]
 
-        # Draw vertical line for Max SD (Error Bar)
-        ax.vlines(x=max_std_k,
+        # Calculate the horizontally offset position for the error bar
+        x_position = max_std_k + x_offsets[i]
+
+        # Define the width of the caps (in units of K)
+        cap_width = 0.5
+
+        # 1. Draw the vertical line (Vertical Error Bar)
+        ax.vlines(x=x_position,
                   ymin=max_std_ari_mean - max_std_val,
                   ymax=max_std_ari_mean + max_std_val,
                   color='gray', linestyle='-', linewidth=2, zorder=5)
-        # Draw caps (using half unit width on the x-axis)
-        ax.hlines(y=max_std_ari_mean - max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='gray',
-                  linewidth=2, zorder=5)
-        ax.hlines(y=max_std_ari_mean + max_std_val, xmin=max_std_k - 0.5, xmax=max_std_k + 0.5, color='gray',
-                  linewidth=2, zorder=5)
 
-        # Add label for Max SD (placed above the cap)
-        ax.text(max_std_k, max_std_ari_mean + max_std_val + 0.03,
+        # 2. Draw the horizontal caps
+        ax.hlines(y=max_std_ari_mean - max_std_val,
+                  xmin=x_position - cap_width / 2, xmax=x_position + cap_width / 2,
+                  color='gray', linewidth=2, zorder=5)
+        ax.hlines(y=max_std_ari_mean + max_std_val,
+                  xmin=x_position - cap_width / 2, xmax=x_position + cap_width / 2,
+                  color='gray', linewidth=2, zorder=5)
+
+        # 3. Add the SD label (also offset)
+        ax.text(x_position, max_std_ari_mean + max_std_val + 0.03,
                 f'{max_std_val:.3f}',
                 color='k', fontsize=7, ha='center',
                 bbox=dict(facecolor=color, alpha=0.2, edgecolor='none', boxstyle="round,pad=0.2"))
