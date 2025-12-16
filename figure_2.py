@@ -11,13 +11,13 @@ _CACHED_SIMULATION_DATA = None
 _CACHED_ARI_DATA = None
 
 # Define file names for persistent storage
-SIM_CACHE_FILE = 'cached_single_sim_data.pkl'
-ARI_CACHE_FILE = 'cached_ari_data.pkl'
+SIM_CACHE_FILE = 'data_cache/cached_single_sim_data.pkl'
+ARI_CACHE_FILE = 'data_cache/cached_ari_data.pkl'
 
 
 # ---------------------------------------------
 
-def get_single_simulation_data():
+def get_single_simulation_data(pop_to_colors):
     """
     Retrieves the single simulation data.
     It loads the specific, consistent simulation history from disk if available,
@@ -43,7 +43,7 @@ def get_single_simulation_data():
 
     # 3. Run simulation (only if not cached anywhere)
     print('Running create_single_simulation_data (will save result for consistency)...')
-    _CACHED_SIMULATION_DATA = create_single_simulation_data()
+    _CACHED_SIMULATION_DATA = create_single_simulation_data(pop_to_colors)
 
     # 4. Save to disk to lock in this specific simulation for all future runs
     print(f"Saving consistent single simulation data to {SIM_CACHE_FILE}...")
@@ -100,14 +100,18 @@ def create_figure_2():
     # Figure size adjusted slightly for better viewing of 2x3 layout
     fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(24, 24), constrained_layout=True)
 
-    print("creating single simulation data")
-    (dates_down, event_stage_labels, migrations_data, splits, replacements,
-     X_down, pop_ids_down, explained_variance, migration_lines) = get_single_simulation_data()
+    # font sizes
+    BASE_FONT_SIZE = 12  # Choose your desired base size
 
-    print(f"Number of event stages: {len(np.unique(event_stage_labels))}")
-    print("First row: Simulation Example")
+    # Set the global parameters for all subplots
+    plt.rcParams['font.size'] = BASE_FONT_SIZE  # General text size
+    plt.rcParams['axes.titlesize'] = BASE_FONT_SIZE + 10  # Main subplot titles (e.g., "B. KMeans Clustering")
+    plt.rcParams['axes.labelsize'] = BASE_FONT_SIZE + 2  # Axis labels (e.g., "PC1", "YBP")
+    plt.rcParams['xtick.labelsize'] = BASE_FONT_SIZE  # X-axis tick values (numbers)
+    plt.rcParams['ytick.labelsize'] = BASE_FONT_SIZE  # Y-axis tick values (numbers)
+    plt.rcParams['legend.fontsize'] = BASE_FONT_SIZE - 2  # Legend text size
 
-    # Defined pop_to_colors here to be passed to all plotting functions
+
     pop_to_colors = {
         # Pop 0: Blue shades (Light to Dark)
         0: ['#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08306b'],
@@ -132,6 +136,15 @@ def create_figure_2():
         6: ['#fccde5', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177'],
     }
 
+    print("creating single simulation data")
+    (dates_down, event_stage_labels, migrations_data, splits, replacements,
+     X_down, pop_ids_down, explained_variance, migration_lines) = get_single_simulation_data(pop_to_colors)
+
+    print(f"Number of event stages: {len(np.unique(event_stage_labels))}")
+    print("First row: Simulation Example")
+
+    # Defined pop_to_colors here to be passed to all plotting functions
+
     # plot a: ground truth
     th = 0
     plot_ground_truth(axes[0, 0], dates_down, event_stage_labels,
@@ -142,7 +155,7 @@ def create_figure_2():
     # b: kmeans results - k=20 t = 0
     plot_kmeans(axes[1, 0], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
                 temporal_weight=0,
-                genetic_weights=explained_variance, k=15,
+                genetic_weights=explained_variance, k=20,
                 migration_lines=migration_lines, pop_to_colors=pop_to_colors)
 
     # plot_kmeans_population_rows(axes[0, 1], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
@@ -152,7 +165,7 @@ def create_figure_2():
 
     # c: kmeans results - k=20 t = 0.75 (NOTE: Original code used t=1, sticking to the code)
     plot_kmeans(axes[2, 0], X_down, dates_array=dates_down, pop_clusters=pop_ids_down,
-                temporal_weight=0.5,
+                temporal_weight=1,
                 genetic_weights=explained_variance, k=20,
                 migration_lines=migration_lines, pop_to_colors=pop_to_colors)
 
@@ -181,12 +194,15 @@ def create_figure_2():
     # (The plot functions already set titles with prefixes, so this is handled)
     # plt.tight_layout(rect=[0, 0.05, 1, 1])  # השארת 5% מהגובה התחתון פנוי
 
+
+
+
     # אם tight_layout לא עובד, נשתמש ב-subplots_adjust:
-    plt.savefig("figure2.svg", format='svg')
-    plt.show()
+    plt.savefig("figures/figure2.svg", format='svg')
+    # plt.show()
 
 
-def create_single_simulation_data():
+def create_single_simulation_data(pop_to_colors=None):
     # ... (Function body remains the same) ...
     migrations = []
     splits = []
@@ -219,19 +235,10 @@ def create_single_simulation_data():
     pops = sorted(np.unique(pop_ids_down))
     pop_to_y_pos = {pop: idx + 1 for idx, pop in enumerate(pops)}
 
-    # Define a default color mapping for internal use in this function
-    pop_to_colors_local = {
-        0: ['#c6dbef', '#6baed6', '#2171b5', '#9ecae1', '#4292c6', '#08306b'],
-        1: ['#feedde', '#fdae6b', '#f16913', '#fdd0a2', '#fd8d3c', '#d94801'],
-        2: ['#a1d99b', '#41ab5d', '#1b7837', '#74c476', '#238b45', '#00441b'],
-        3: ['#fcae91', '#ef3b2c', '#a50f15', '#fb6a4a', '#cb181d', '#67000d'],
-        4: ['#bcbddc', '#807dba', '#54278f', '#9e9ac8', '#6a51a3', '#3f007d'],
-        5: ['#d4dde6', '#6c8597', '#2c4a5f', '#a1b3c4', '#47697f', '#102c3f'],
-        6: ['#fccde5', '#f768a1', '#ae017e', '#fa9fb5', '#dd3497', '#7a0177'],
-    }
 
-    pop_to_representative_color = {pop: pop_to_colors_local.get(pop, ['gray'])[-1] for pop in pops if
-                                   pop in pop_to_colors_local}
+
+    pop_to_representative_color = {pop: pop_to_colors.get(pop, ['gray'])[-1] for pop in pops if
+                                   pop in pop_to_colors}
     for pop in pops:
         if pop not in pop_to_representative_color:
             pop_to_representative_color[pop] = 'gray'
@@ -401,7 +408,6 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
                     mig_year,
                     y_end + 0.05,
                     score_text,
-                    fontsize=8,
                     ha='center',
                     va='bottom',
                     color=line_data['color'],
@@ -415,9 +421,12 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
     # Final Aesthetic Settings
     # -----------------------------------------------------
 
-    ax.set_xlabel('Years Before Present (YBP)')
+    ax.tick_params(axis='both',
+                   which='major',
+                   labelsize=14)
+    ax.set_xlabel('Years Before Present (YBP)', fontsize=18)
     ax.invert_xaxis()
-    ax.set_ylabel('Population ID (Clustered)')
+    ax.set_ylabel('Population ID (Clustered)', fontsize=18)
 
     if pops:
         y_ticks = [pop_to_y_pos[pop] for pop in pops]
@@ -431,7 +440,7 @@ def plot_ground_truth(ax, dates_down, event_stage_labels, title, migration_lines
             ax.axhline(y=y, color='gray', linestyle='--', linewidth=0.5, zorder=1)
 
     if title:
-        ax.set_title(title, fontsize=12)
+        ax.set_title(title)
 
 
 def plot_dashed_migration_lines(
@@ -454,10 +463,14 @@ def plot_dashed_migration_lines(
     """
 
     # 1. --- Filter the Data based on the Score Threshold ---
-    filtered_lines = [
-        line for line in migration_lines
-        if line.get('score', 0) >= score_threshold
-    ]
+    if draw_detailed:
+        filtered_lines = migration_lines
+    else:
+        # Keep the filtering for Plot A (Ground Truth) which filters by D*m score
+        filtered_lines = [
+            line for line in migration_lines
+            if line.get('score', 0) >= score_threshold
+        ]
 
     if not filtered_lines:
         return
@@ -503,7 +516,7 @@ def plot_dashed_migration_lines(
         line_color = '#000000'  # Default black
         if target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
             # Use the primary color of the target population
-            line_color = pop_to_colors[target_pop_id][0]
+            line_color = pop_to_colors[target_pop_id][1]
 
         if migration_date is None:
             continue
@@ -528,7 +541,8 @@ def plot_dashed_migration_lines(
 
             # 3.3. Draw the Vertical Line
             ax.axvline(x=migration_date, color=line_color, linestyle='--',
-                       linewidth=calculated_linewidth, alpha=1, zorder=1)
+                       linewidth=1.5, #calculated_linewidth,
+                        alpha=1, zorder=1)
 
             # 3.4. Add D*m Annotation
             if score is not None and score > 0:
@@ -538,7 +552,6 @@ def plot_dashed_migration_lines(
                     xytext=(0, 5),
                     textcoords='offset points',
                     ha='center',
-                    fontsize=8,
                     color='k',
                     bbox=dict(facecolor='white', alpha=1, edgecolor='none', boxstyle='round,pad=0.2')
                 )
@@ -547,7 +560,193 @@ def plot_dashed_migration_lines(
             # --- SIMPLE PLOTTING (For Plot A: Ground Truth) ---
             # Draws a uniform, simple dashed line without labels or complex features.
             ax.axvline(x=migration_date, color=line_color, linestyle='--',
-                       linewidth=1.0, alpha=0.7, zorder=0)
+                       linewidth=1, alpha=0.1, zorder=0)
+
+
+def plot_localized_migration_markers(
+        ax,
+        caught_migration_lines,
+        pop_to_colors
+):
+    """
+    Plots vertical line segments for caught migration events, localized to the
+    mean PC1 position of the affected population within the time window.
+    Linewidth is dynamically scaled by the D*m score.
+
+    This function is intended for Plots B and C (K-Means results).
+    """
+
+    if not caught_migration_lines:
+        return
+
+    scores = np.array([line.get('score') for line in caught_migration_lines])
+
+    # 1. Calculate Dynamic Parameters
+
+    # Linewidth constants
+    MIN_LINEWIDTH = 1
+    MAX_LINEWIDTH = 4
+    LINEWIDTH_RANGE = MAX_LINEWIDTH - MIN_LINEWIDTH
+
+    # Check for score range for normalization
+    if scores.size > 0 and np.max(scores) > np.min(scores):
+        min_score = np.min(scores)
+        max_score = np.max(scores)
+        score_range = max_score - min_score
+    else:
+        # If all scores are identical or there are no scores, use a base line width.
+        score_range = 0
+        min_score = 0
+
+    # 2. Plotting the Localized Markers
+    for line in caught_migration_lines:
+        migration_date = line.get('year')
+        target_pop_id = line.get('tgt_pop')
+        score = line.get('score')
+
+        # Localized Y position data (calculated in plot_kmeans)
+        local_y_center = line.get('local_y_center')
+        local_y_height = line.get('local_y_height', 1.0)
+
+        if local_y_center is None:
+            continue  # Skip if Y position was not calculated
+
+        # Determine the line color
+        line_color = '#000000'
+        if target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
+            line_color = pop_to_colors[target_pop_id][1]
+
+        # 2.1. Calculate Variable Linewidth
+        calculated_linewidth = MIN_LINEWIDTH
+        if score_range > 1e-6:
+            normalized_score = (score - min_score) / score_range
+            calculated_linewidth = MIN_LINEWIDTH + (normalized_score * LINEWIDTH_RANGE)
+
+        # 2.2. Draw the Vertical LINE SEGMENT (Localized Line)
+        y_start = local_y_center - local_y_height / 2
+        y_end = local_y_center + local_y_height / 2
+
+        ax.plot(
+            [migration_date, migration_date],  # X coordinates are the same (vertical line)
+            [y_start, y_end],  # Y coordinates define the segment height
+            color=line_color,
+            linestyle='--',
+            linewidth=calculated_linewidth,
+            alpha=1,
+            zorder=1
+        )
+
+        # 2.3. Add D*m Annotation
+        if score is not None and score > 0:
+            ax.annotate(
+                f'{score:.3f}',
+                xy=(migration_date, y_end),  # Anchor at the top of the segment
+                xytext=(0, 5),
+                textcoords='offset points',
+                ha='center',
+                color='k',
+                bbox=dict(facecolor='white', alpha=1, edgecolor='none', boxstyle='round,pad=0.2'),
+                zorder=5
+            )
+
+
+def plot_migration_arrows(
+        ax,
+        caught_migration_lines,
+        pop_to_colors
+):
+    """
+    Plots arrows representing caught migration events, running from the
+    Source Population's mean PC1 position to the Target Population's mean PC1 position.
+    Linewidth is dynamically scaled by the D*m score.
+    """
+
+    if not caught_migration_lines:
+        return
+
+    scores = np.array([line.get('score') for line in caught_migration_lines])
+
+    # 1. Calculate Dynamic Parameters
+
+    MIN_LINEWIDTH = 1.0
+    MAX_LINEWIDTH = 4.0
+    LINEWIDTH_RANGE = MAX_LINEWIDTH - MIN_LINEWIDTH
+    ARROW_HEAD_WIDTH = 0.5  # Default width for a decent arrow head
+
+    # Check for score range for normalization
+    if scores.size > 0 and np.max(scores) > np.min(scores):
+        min_score = np.min(scores)
+        max_score = np.max(scores)
+        score_range = max_score - min_score
+    else:
+        score_range = 0
+        min_score = 0
+
+    # 2. Plotting the Arrows
+    for line in caught_migration_lines:
+        migration_date = line.get('year')
+        target_pop_id = line.get('tgt_pop')
+        score = line.get('score')
+
+        # Retrieve calculated Y positions (Source and Target)
+        y_src = line.get('local_y_center_src')
+        y_tgt = line.get('local_y_center_tgt')
+
+        if y_src is None or y_tgt is None:
+            continue  # Skip if Y position was not calculated for both
+
+        # Determine the arrow color (based on Target Pop)
+        line_color = '#000000'
+        if target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
+            line_color = pop_to_colors[target_pop_id][1]
+
+        src_pop_color = '#000000'
+        if line.get('src_pop') in pop_to_colors and pop_to_colors[line.get('src_pop')]:
+            src_pop_color = pop_to_colors[line.get('src_pop')][1]
+
+        # 2.1. Calculate Variable Linewidth (affects arrow thickness)
+        calculated_linewidth = MIN_LINEWIDTH
+        if score_range > 1e-6:
+            normalized_score = (score - min_score) / score_range
+            calculated_linewidth = MIN_LINEWIDTH + (normalized_score * LINEWIDTH_RANGE)
+
+        # 2.2. Draw the Arrow
+        # dx=0 because it's a vertical arrow, dy is the difference in PC1 means.
+        dy = y_tgt - y_src
+
+        # Use ax.arrow for better control over thickness (linewidth)
+        # Note: head_width must be relative to the X-axis scale (Time)
+
+        ax.arrow(
+            x=migration_date,  # X position
+            y=y_src,  # Start Y position
+            dx=0,  # No movement in X
+            dy=dy,  # Total movement in Y (from src to tgt)
+            head_width=200,
+            head_length=0.4,
+            fc=line_color,
+            ec='k',
+            linewidth=calculated_linewidth,  # Use linewidth for the body
+            length_includes_head=True,
+            alpha=1,
+            zorder=4
+        )
+
+        # 2.3. Add D*m Annotation (positioned near the target end of the arrow)
+        # if score is not None and score > 0:
+        #     # Place annotation slightly offset from the target point
+        #     annotate_y = y_tgt + (0.5 if dy >= 0 else -0.5)
+
+            # ax.annotate(
+            #     f'{score:.3f}',
+            #     xy=(migration_date, annotate_y),
+            #     xytext=(0, 0),
+            #     textcoords='offset points',
+            #     ha='center',
+            #     color='k',
+            #     bbox=dict(facecolor='white', alpha=1, edgecolor='none', boxstyle='round,pad=0.2'),
+            #     zorder=5
+            # )
 
 
 def plot_ellipse(ax, mean, cov, color, alpha=0.7, n_std=1.5):
@@ -570,6 +769,75 @@ def plot_ellipse(ax, mean, cov, color, alpha=0.7, n_std=1.5):
     return ellipse
 
 
+def is_migration_caught(samples_df, migration_time, affected_pop_id, cluster_labels, time_window_size=500,
+                        min_dominance_ratio=0.75):
+    """
+    Checks if a migration event caused a shift in cluster assignments for the AFFECTED population
+    by comparing samples within fixed time windows before and after the event.
+    """
+
+    df = samples_df.copy()
+    df['Cluster'] = cluster_labels
+
+    # 1. Filter ONLY for the affected population in the Ground Truth (Crucial change!)
+    df_affected = df[df['Pop_ID'] == affected_pop_id]
+
+    if df_affected.empty:
+        return False
+
+    # Define time windows (Time is YBP, larger is older, smaller is newer)
+    time_after_start = migration_time - time_window_size  # Newest YBP for the 'after' window
+    time_before_end = migration_time + time_window_size  # Oldest YBP for the 'before' window
+
+    MIN_SAMPLES = 5
+
+    # 2. Window BEFORE the event (Older samples: Time > migration_time, but near it)
+    before_event_window = df_affected[
+        (df_affected['Time'] > migration_time) &
+        (df_affected['Time'] <= time_before_end)
+        ]
+
+    # 3. Window AFTER the event (Newer samples: Time <= migration_time, but near it)
+    after_event_window = df_affected[
+        (df_affected['Time'] <= migration_time) &
+        (df_affected['Time'] >= time_after_start)
+        ]
+
+    # Check for sufficient sample size
+    if len(before_event_window) < MIN_SAMPLES or len(after_event_window) < MIN_SAMPLES:
+        return False
+
+    # 4. Find the dominant cluster and check dominance ratio
+
+    # Check BEFORE
+    cluster_counts_before = Counter(before_event_window['Cluster'])
+    dominant_cluster_before = cluster_counts_before.most_common(1)
+
+    # Check AFTER
+    cluster_counts_after = Counter(after_event_window['Cluster'])
+    dominant_cluster_after = cluster_counts_after.most_common(1)
+
+    if not dominant_cluster_before or not dominant_cluster_after:
+        return False
+
+    cluster_id_before = dominant_cluster_before[0][0]
+    cluster_id_after = dominant_cluster_after[0][0]
+
+    # Check the ratio of the dominant cluster vs. total samples in the window
+    dominance_ratio_before = dominant_cluster_before[0][1] / len(before_event_window)
+    dominance_ratio_after = dominant_cluster_after[0][1] / len(after_event_window)
+
+    # 5. Final Check: Shift AND High Dominance
+
+    # The event is caught ONLY IF:
+    # a) The dominant cluster ID changed
+    # b) Both the 'before' and 'after' clusters meet the minimum dominance requirement
+    is_shifted = cluster_id_before != cluster_id_after
+    is_dominant = (dominance_ratio_before >= min_dominance_ratio) and \
+                  (dominance_ratio_after >= min_dominance_ratio)
+
+    return is_shifted and is_dominant
+
 
 def plot_kmeans(
         ax,
@@ -584,7 +852,7 @@ def plot_kmeans(
 ):
     """
     Performs K-means clustering on weighted genetic (PC1, PC2) and time data,
-    and plots the PC1 vs Time results (ellipses, points, and migration labels).
+    and plots the PC1 vs Time results (ellipses, points, and migration arrows).
     """
     if pop_to_colors is None:
         print("Error: pop_to_colors is missing in plot_kmeans.")
@@ -594,29 +862,20 @@ def plot_kmeans(
     num_genetic_features = len(genetic_weights)
     X_sliced = X[:, :num_genetic_features]
 
-    # --- Z-Score Normalization of the time dimension ---
+    # Z-Score Normalization of the time dimension (ensures time dimension does not dominate based on scale)
     dates_mean = np.mean(dates_array)
     dates_std = np.std(dates_array)
+    dates_normalized = (dates_array - dates_mean) / dates_std if dates_std != 0 else dates_array - dates_mean
 
-    if dates_std == 0:
-        dates_normalized = dates_array - dates_mean
-    else:
-        dates_normalized = (dates_array - dates_mean) / dates_std
-
-    # Combine the SLICED PCA data and NORMALIZED time data.
+    # Combine the SLICED PCA data and NORMALIZED time data for clustering.
     X_for_kmeans = np.column_stack([X_sliced, dates_normalized])
-    # ---------------------------------------------------
 
-    # Run k-means (Requires run_kmeans to be accessible)
-    # clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
-    #                                  genetic_weights=genetic_weights)
-    # Placeholder for running k-means since run_kmeans is not provided
     try:
-        # Assuming run_kmeans is available
+        # Run k-means with specified weights.
         clusters, centroids = run_kmeans(X_for_kmeans, k=k, temporal_weight=temporal_weight,
                                          genetic_weights=genetic_weights)
     except NameError:
-        # Dummy results if run_kmeans is not defined for demonstration
+        # Fallback for demonstration if run_kmeans is not defined.
         clusters = np.random.randint(0, k, size=len(X))
         centroids = np.zeros((k, X_for_kmeans.shape[1]))
 
@@ -624,7 +883,7 @@ def plot_kmeans(
 
     # 2. === Cluster Coloring Logic ===
 
-    # Step 1: Map each cluster to its dominant population
+    # Step 1: Map each cluster to its dominant ground-truth population ID.
     cluster_to_pop = {}
     for cluster_id in range(k):
         mask = clusters == cluster_id
@@ -634,71 +893,142 @@ def plot_kmeans(
         else:
             cluster_to_pop[cluster_id] = -1
 
-    # Step 3 & 4: Calculate average date and assign colors (lighter colors for earlier clusters)
+    # Calculate average date for each cluster.
     cluster_avg_dates = []
     for cluster_id in range(k):
         mask = clusters == cluster_id
         if np.sum(mask) > 0:
             mean_date = np.mean(dates_array[mask])
             cluster_avg_dates.append((cluster_id, mean_date))
-    cluster_avg_dates.sort(key=lambda x: x[1], reverse=True)  # Sort by date descending (older first)
 
+    # Sort clusters by date descending (older samples first).
+    cluster_avg_dates.sort(key=lambda x: x[1], reverse=True)
+
+    # Assign colors: Use darker shades for older clusters within the same dominant population.
     cluster_colors = {}
     pop_color_usage = defaultdict(int)
     for _, (cluster_id, _) in enumerate(cluster_avg_dates):
         dominant_pop = cluster_to_pop[cluster_id]
         if dominant_pop != -1 and dominant_pop in pop_to_colors:
             colors_list = pop_to_colors[dominant_pop]
-            # Use pop_color_usage to cycle through the shades of the dominant population's color
+            # Cycle through the shades based on usage count.
             color_index = pop_color_usage[dominant_pop] % len(colors_list)
             cluster_colors[cluster_id] = colors_list[color_index]
             pop_color_usage[dominant_pop] += 1
         else:
             cluster_colors[cluster_id] = '#808080'  # Gray for unassigned/empty clusters
 
-    # 3. === Plotting PC1 vs Time ===
-
+    # 3. === Plotting PC1 vs Time (Scatter and Ellipses) ===
     for cluster_id in range(k):
         mask = clusters == cluster_id
         cluster_color = cluster_colors[cluster_id]
 
         if np.sum(mask) <= 1:
+            # Draw single point if only one sample.
             if np.sum(mask) == 1:
                 ax.scatter(dates_array[mask], pc1[mask], c=cluster_color, s=20, zorder=1)
             continue
 
-        # Drawing Ellipse on (Time, PC1) plane (Requires plot_ellipse to be accessible)
+        # Prepare data for ellipse (Time vs PC1).
         cluster_data_time_pc1 = np.stack((dates_array[mask], pc1[mask]), axis=-1)
         mean_time_pc1 = np.mean(cluster_data_time_pc1, axis=0)
         cov_time_pc1 = np.cov(cluster_data_time_pc1, rowvar=False)
 
         try:
-            # Assuming plot_ellipse is available
+            # Draw the confidence ellipse.
             plot_ellipse(ax, mean_time_pc1, cov_time_pc1, cluster_color, alpha=0.7, n_std=1.5)
         except NameError:
             pass  # Skip ellipse plotting if plot_ellipse is undefined
 
-        # Drawing Scatter Points
-        ax.scatter(dates_array[mask], pc1[mask], c=cluster_color, s=20,
-                   zorder=3)
+        # Draw Scatter Points.
+        ax.scatter(dates_array[mask], pc1[mask], c=cluster_color, s=20, zorder=3)
 
-    # 4. === Plotting Migration Event Labels ===
-    plot_dashed_migration_lines(ax, migration_lines, pop_to_colors,
-                                draw_detailed=True,
-                                score_threshold=0)
+    # 4. === Plotting Migration Event Labels (Arrows) ===
 
+    if migration_lines is None:
+        return
 
+    # 4.1. Prepare the data frame for detection
+    samples_df = pd.DataFrame({
+        'Time': dates_array,
+        'Pop_ID': pop_clusters,  # Ground Truth Pop ID is used as a filter
+        'PC1': X[:, 0]
+    })
+
+    time_window_size = 1500  # Define the time window size for 'caught' detection
+
+    # Filter only migration lines that have a sufficient score to be considered (score > 0).
+    relevant_migrations = [line for line in migration_lines if line.get('score', 0) > 0]
+
+    caught_migration_lines_with_pos = []
+    caught_migration_lines=[]
+
+    # Loop through relevant migrations to check if the K-Means clustering 'caught' the event.
+    for line_data in relevant_migrations:
+        mig_time = line_data.get('year')
+        affected_pop_tgt = line_data.get('tgt_pop')  # Target Population ID
+        affected_pop_src = line_data.get('src_pop')  # Source Population ID
+
+        # Determine if the K-Means clustering 'caught' this specific temporal change (based on TGT pop).
+        try:
+            is_caught = is_migration_caught(
+                samples_df,
+                mig_time,
+                affected_pop_tgt,  # Check shift based on TARGET population
+                clusters,
+                time_window_size=time_window_size,
+                min_dominance_ratio=0.75
+            )
+        except NameError:
+            # Fallback if is_migration_caught is not defined.
+            print("Error: is_migration_caught function is not defined. Skipping migration filtering.")
+            is_caught = True
+
+        if is_caught:
+            # --- Calculate Y position for both Source and Target populations ---
+            caught_migration_lines.append(line_data)
+
+            # Filter samples of the TARGET population within the time window
+            df_tgt_window = samples_df[
+                (samples_df['Pop_ID'] == affected_pop_tgt) &
+                (samples_df['Time'] <= mig_time + time_window_size) &
+                (samples_df['Time'] >= mig_time - time_window_size)
+                ]
+
+            # Filter samples of the SOURCE population within the time window
+            df_src_window = samples_df[
+                (samples_df['Pop_ID'] == affected_pop_src) &
+                (samples_df['Time'] <= mig_time + time_window_size) &
+                (samples_df['Time'] >= mig_time - time_window_size)
+                ]
+
+            # Calculate the average PC1 position (Y center) for both
+            if not df_tgt_window.empty and not df_src_window.empty:
+                avg_pc1_tgt = df_tgt_window['PC1'].mean()
+                avg_pc1_src = df_src_window['PC1'].mean()
+
+                # Create a copy and store the calculated Y positions.
+                line_data_with_pos = line_data.copy()
+                line_data_with_pos['local_y_center_tgt'] = avg_pc1_tgt
+                line_data_with_pos['local_y_center_src'] = avg_pc1_src
+
+                caught_migration_lines_with_pos.append(line_data_with_pos)
+
+    # 4.2. Plot the arrows using the dedicated function.
+    plot_migration_arrows(ax, caught_migration_lines_with_pos, pop_to_colors)
+    plot_dashed_migration_lines(ax, caught_migration_lines, pop_to_colors, draw_detailed=True, score_threshold=0)
 
     # 5. === Finalizing Axes Settings ===
-    title_prefix = {0: "B", 1: "C"}.get(temporal_weight, "C")
-    ax.set_title(f'{title_prefix}. KMeans Clustering (k={k}, t={temporal_weight})', fontsize=12)
-    ax.set_xlabel('Years Before Present (YBP)')
+    ax.tick_params(axis='both',
+                   which='major',
+                   labelsize=14)
+    title_prefix = {0: "B", 0.5: "C"}.get(temporal_weight, "C")
+    ax.set_title(f'{title_prefix}. KMeans Clustering (k={k}, t={temporal_weight})')
+    ax.set_xlabel('Years Before Present (YBP)', fontsize=18)
     ax.set_xlim(-500, 10500)
-    ax.set_ylabel('PC1')
+    ax.set_ylabel('PC1', fontsize=18)
     ax.invert_xaxis()
     ax.grid(True, linestyle='--', alpha=0.6)
-
-    # Note: The code to expand the lower Y limit has been removed.
 
 
 def plot_kmeans_population_rows(
@@ -886,7 +1216,7 @@ def plot_kmeans_population_rows(
             migration_color = '#000000'
 
             if target_pop_id is not None and target_pop_id in pop_to_colors and pop_to_colors[target_pop_id]:
-                migration_color = pop_to_colors[target_pop_id][0]
+                migration_color = pop_to_colors[target_pop_id][5]
 
             if migration_date is not None:
                 ax.axvline(x=migration_date, color=migration_color, linestyle='--',
@@ -900,8 +1230,8 @@ def plot_kmeans_population_rows(
     ax.set_yticklabels(pop_labels)
 
     title_prefix = {0: "B", 1: "C"}.get(temporal_weight, "C")
-    ax.set_title(f'{title_prefix}. K-means Strip Plot with Ellipses (k={k}, t={temporal_weight})', fontsize=12)
-    ax.set_xlabel('Years Before Present (YBP)')
+    ax.set_title(f'{title_prefix}. K-means Strip Plot with Ellipses (k={k}, t={temporal_weight})')
+    ax.set_xlabel('Years Before Present (YBP)', fontsize=18)
     ax.set_xlim(10000, 0)
     ax.set_ylabel('Population')  #
     ax.invert_xaxis()
@@ -1012,7 +1342,7 @@ def plot_ARI(ax, threshold, ARI_data):
                 ha='center', va='center', transform=ax.transAxes)
         # Check current position for correct labeling (D, E, F)
         title_prefix = {0: "D", 0.004: "E", 0.008: "F"}.get(threshold, "D")
-        ax.set_title(f"{title_prefix}. ARI for various temporal weights - threshold = {threshold}", fontsize=12)
+        ax.set_title(f"{title_prefix}. ARI for various temporal weights - threshold = {threshold}")
         return
 
     data = ARI_data[threshold]
@@ -1023,8 +1353,8 @@ def plot_ARI(ax, threshold, ARI_data):
     # 2. --- Plotting Setup ---
 
     ax.set_ylim([0, 1])
-    ax.set_xlabel('Number of clusters (K)')
-    ax.set_ylabel('ARI')
+    ax.set_xlabel('Number of clusters (K)', fontsize=18)
+    ax.set_ylabel('ARI', fontsize=18)
 
     # Only set ylabel for the first subplot (D) to avoid clutter in E and F
     if threshold == 0.004 or threshold == 0.008:
@@ -1059,41 +1389,43 @@ def plot_ARI(ax, threshold, ARI_data):
         cap_width = 0.5
 
         # 1. Draw the vertical line (Vertical Error Bar)
-        ax.vlines(x=x_position,
-                  ymin=max_std_ari_mean - max_std_val,
-                  ymax=max_std_ari_mean + max_std_val,
-                  color='gray', linestyle='-', linewidth=2, zorder=5)
+        # ax.vlines(x=x_position,
+        #           ymin=max_std_ari_mean - max_std_val,
+        #           ymax=max_std_ari_mean + max_std_val,
+        #           color='gray', linestyle='-', linewidth=2, zorder=5)
 
         # 2. Draw the horizontal caps
-        ax.hlines(y=max_std_ari_mean - max_std_val,
-                  xmin=x_position - cap_width / 2, xmax=x_position + cap_width / 2,
-                  color='gray', linewidth=2, zorder=5)
-        ax.hlines(y=max_std_ari_mean + max_std_val,
-                  xmin=x_position - cap_width / 2, xmax=x_position + cap_width / 2,
-                  color='gray', linewidth=2, zorder=5)
+        # ax.hlines(y=max_std_ari_mean - max_std_val,
+        #           xmin=x_position - cap_width / 2, xmax=x_position + cap_width / 2,
+        #           color='gray', linewidth=2, zorder=5)
+        # ax.hlines(y=max_std_ari_mean + max_std_val,
+        #           xmin=x_position - cap_width / 2, xmax=x_position + cap_width / 2,
+        #           color='gray', linewidth=2, zorder=5)
 
         # 3. Add the SD label (also offset)
-        ax.text(x_position, max_std_ari_mean + max_std_val + 0.03,
-                f'{max_std_val:.3f}',
-                color='k', fontsize=7, ha='center',
-                bbox=dict(facecolor=color, alpha=0.2, edgecolor='none', boxstyle="round,pad=0.2"))
+        # ax.text(x_position, max_std_ari_mean + max_std_val + 0.03,
+        #         f'{max_std_val:.3f}',
+        #         color='k', ha='center',
+        #         bbox=dict(facecolor=color, alpha=0.2, edgecolor='none', boxstyle="round,pad=0.2"))
 
     # 4. --- Final Aesthetic Settings ---
 
     # Check current position for correct labeling (D, E, F)
     title_prefix = {0: "D", 0.004: "E", 0.008: "F"}.get(threshold, "D")
-    ax.set_title(f"{title_prefix}. ARI for various temporal weights - threshold = {threshold}", fontsize=12)
+    ax.set_title(f"{title_prefix}. ARI for various temporal weights - threshold = {threshold}")
 
     # Average subpopulation count annotation
     ax.text(
         0.02, 0.95,
         f"Avg number of populations:\n{mean_num_of_subpops:.2f}",
         transform=ax.transAxes,
-        fontsize=10,
         verticalalignment='top',
         bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7)
     )
-    ax.legend(loc='upper right', fontsize=8)
+    ax.legend(loc='upper right')
+    ax.tick_params(axis='both',
+                   which='major',
+                   labelsize=14)
 
 
 # --- קריאה לפונקציה הראשית ---
