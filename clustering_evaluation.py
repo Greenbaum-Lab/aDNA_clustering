@@ -98,57 +98,104 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
 
     migrations_data = evaluate_migrations(populations, migrations)
 
+    # --- Calculation of necessary data for migration line plotting ---
+    pops = sorted(np.unique(pop_ids_down))
+    pop_to_y_pos = {pop: idx + 1 for idx, pop in enumerate(pops)}
+    pop_to_colors = {
+        0: ['#c6dbef', '#6baed6', '#08306b', '#d94801', '#238b45', '#a50f15', '#54278f'],
+        1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],
+        2: ['#a1d99b', '#41ab5d', '#00441b', '#74c476', '#238b45', '#1b7837'],
+        3: ['#fcae91', '#ef3b2c', '#67000d', '#fb6a4a', '#cb181d', '#a50f15'],
+        4: ['#bcbddc', '#807dba', '#3f007d', '#9e9ac8', '#6a51a3', '#54278f'],
+        5: ['#d4dde6', '#6c8597', '#102c3f', '#a1b3c4', '#47697f', '#2c4a5f'],
+        6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],
+    } # Note: The full list of colors is not strictly needed here, only the list of populations and colors for migration lines.
 
+    pop_to_representative_color = {pop: pop_to_colors.get(pop, ['gray'])[-1] for pop in pops if pop in pop_to_colors}
+    for pop in pops:
+        if pop not in pop_to_representative_color:
+            pop_to_representative_color[pop] = 'gray'
+
+    pc1 = X_down[:, 0]
+    pc2 = X_down[:, 1]
+    pop_to_mean_pc1 = {}
+    pop_to_mean_pc2 = {}
+
+    for pop in pops:
+        mask = (pop_ids_down == pop)
+        if np.sum(mask) > 0:
+            pop_to_mean_pc1[pop] = np.mean(pc1[mask])
+            pop_to_mean_pc2[pop] = np.mean(pc2[mask])
+        else:
+            pop_to_mean_pc1[pop] = 0
+            pop_to_mean_pc2[pop] = 0
+
+    migration_lines = prepare_migration_lines(
+        migrations_data,
+        pop_to_mean_pc1,
+        pop_to_mean_pc2,
+        pop_to_y_pos,
+        pop_to_representative_color
+    )
+    # --- END NEW BLOCK ---
 
     thresholds = [0, 0.002, 0.004, 0.006, 0.008]
 
-    # k=6, t=0 (Clustering without time)
-    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
-                               genetic_weights=explained_variance, k=7)
 
-
-    # k=6, t=0.25 (Low temporal weight)
-    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
-                               genetic_weights=explained_variance, k=7)
-
-
-    # k=6, t=0.75 (Higher temporal weight)
-    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
-                               genetic_weights=explained_variance, k=7)
-
-
-
+    # # k=6, t=0 (Clustering without time)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
+    #                            genetic_weights=explained_variance, k=7,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
+    #
+    # # k=6, t=0.25 (Low temporal weight)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
+    #                            genetic_weights=explained_variance, k=7,
+    #                            migration_lines=migration_lines,) # ADDED PARAMS
+    #
+    # # k=6, t=0.75 (Higher temporal weight)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
+    #                            genetic_weights=explained_variance, k=7,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
+    #
     # k=20, t=0 (Over-clustering without time)
-    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
-                               genetic_weights=explained_variance, k=20)
-
-
-    # k=20, t=0.25
-    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
-                               genetic_weights=explained_variance, k=20)
-
-
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
+    #                            genetic_weights=explained_variance, k=20,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
+    #
+    # # k=20, t=0.25
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
+    #                            genetic_weights=explained_variance, k=20,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
+    #
     # k=20, t=0.75 (Over-clustering with temporal weight)
-    plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
-                               genetic_weights=explained_variance, k=20)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
+    #                            genetic_weights=explained_variance, k=20,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
 
 
     threshold_scores_for_k = {}
     threshold_scores_for_t = {}
     treshold_number_of_subpopulations = {}
 
-
     for th in thresholds:
         print(f"############# running evaluation for threshold - {th} #############")
         event_stage_labels = label_by_demographic_events(pop_ids_down, dates_down, migrations_data, splits,
                                                          replacements, threshold=th)
-        plot_within_population_clusters(X_down,dates_down, pop_ids_down, event_stage_labels, explained_variance, title=f"Populations by Demographic Events over {th} (PCA Space)")
-        plot_demographic_events_by_subcluster(dates_down, event_stage_labels, title=f"Ground Truth for Threshold {th}", migration_events_data=migrations_data, current_threshold=th)
+
+        # --- UPDATED CALLS (Using 'th' as the current_threshold) ---
+        # plot_within_population_clusters(X_down, dates_down, pop_ids_down, event_stage_labels,
+        #                                 explained_variance,
+        #                                 title=f"Populations by Demographic Events over {th} (PCA Space)",
+        #                                 migration_lines=migration_lines, current_threshold=th)
+
+        # plot_demographic_events_by_subcluster(dates_down, event_stage_labels, title=f"Ground Truth for Threshold {th}",
+        #                                       migration_lines=migration_lines, current_threshold=th)
+        # --- END UPDATED CALLS ---
 
         number_of_subpopulations = np.unique(event_stage_labels).size
         treshold_number_of_subpopulations[th] = number_of_subpopulations
 
-        temporal_weight_values = [0, 0.1,0.2, 0.5, 0.75, 1, 10]
+        temporal_weight_values = [0, 0.25, 0.5, 1, 10]
         k_values = np.arange(1, 41, 1)
         scores_for_t = calculate_ARI_vs_t(X_down, temporal_weight_values, k_values, pop_ids_down, event_stage_labels,
                                           explained_variance)
@@ -168,7 +215,6 @@ def run_clustering_evaluation(num_of_populations, migrations, splits, replacemen
     # plot_average_score_vs_t_and_k(populations, migrations, X_down, pop_ids_down, dates_down, explained_variance)
 
     return threshold_scores_for_k, threshold_scores_for_t, treshold_number_of_subpopulations
-
 
 def create_mean_ari_grid_heatmap(scores_for_t, temporal_weight_values, k_values):
     """
@@ -248,4 +294,139 @@ def create_mean_ari_grid_heatmap(scores_for_t, temporal_weight_values, k_values)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust for suptitle
     plt.suptitle("Mean ARI Score Grid: Optimal K and t per Threshold", fontsize=16)
     plt.show()
+
+
+def run_clustering_evaluation_with_plots(num_of_populations, migrations, splits, replacements):
+    # Generate PCA and clustering data
+    print("generating data")
+    populations, X, dates_array, population_ids_array, population_timesteps_array, explained_variance = generate_kmeans_data(
+        num_of_populations, migrations, splits, replacements)
+    original_variance = explained_variance.copy()
+    explained_variance /= explained_variance[0]
+
+    # downsample
+    X_down, dates_down, pop_ids_down, timesteps_down = downsample_within_populations(
+        X, dates_array, population_ids_array, population_timesteps_array,
+        max_samples_per_bin=50, bin_width=500
+    )
+
+    migrations_data = evaluate_migrations(populations, migrations)
+
+    # --- Calculation of necessary data for migration line plotting ---
+    pops = sorted(np.unique(pop_ids_down))
+    pop_to_y_pos = {pop: idx + 1 for idx, pop in enumerate(pops)}
+    pop_to_colors = {
+        0: ['#c6dbef', '#6baed6', '#08306b', '#d94801', '#238b45', '#a50f15', '#54278f'],
+        1: ['#feedde', '#fdae6b', '#d94801', '#fdd0a2', '#fd8d3c', '#f16913'],
+        2: ['#a1d99b', '#41ab5d', '#00441b', '#74c476', '#238b45', '#1b7837'],
+        3: ['#fcae91', '#ef3b2c', '#67000d', '#fb6a4a', '#cb181d', '#a50f15'],
+        4: ['#bcbddc', '#807dba', '#3f007d', '#9e9ac8', '#6a51a3', '#54278f'],
+        5: ['#d4dde6', '#6c8597', '#102c3f', '#a1b3c4', '#47697f', '#2c4a5f'],
+        6: ['#fccde5', '#f768a1', '#7a0177', '#fa9fb5', '#dd3497', '#ae017e'],
+    } # Note: The full list of colors is not strictly needed here, only the list of populations and colors for migration lines.
+
+    pop_to_representative_color = {pop: pop_to_colors.get(pop, ['gray'])[-1] for pop in pops if pop in pop_to_colors}
+    for pop in pops:
+        if pop not in pop_to_representative_color:
+            pop_to_representative_color[pop] = 'gray'
+
+    pc1 = X_down[:, 0]
+    pc2 = X_down[:, 1]
+    pop_to_mean_pc1 = {}
+    pop_to_mean_pc2 = {}
+
+    for pop in pops:
+        mask = (pop_ids_down == pop)
+        if np.sum(mask) > 0:
+            pop_to_mean_pc1[pop] = np.mean(pc1[mask])
+            pop_to_mean_pc2[pop] = np.mean(pc2[mask])
+        else:
+            pop_to_mean_pc1[pop] = 0
+            pop_to_mean_pc2[pop] = 0
+
+    migration_lines = prepare_migration_lines(
+        migrations_data,
+        pop_to_mean_pc1,
+        pop_to_mean_pc2,
+        pop_to_y_pos,
+        pop_to_representative_color
+    )
+    # --- END NEW BLOCK ---
+
+    thresholds = [0, 0.002, 0.004, 0.006, 0.008]
+
+
+    # # k=6, t=0 (Clustering without time)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
+    #                            genetic_weights=explained_variance, k=7,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
+    #
+    # # k=6, t=0.25 (Low temporal weight)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
+    #                            genetic_weights=explained_variance, k=7,
+    #                            migration_lines=migration_lines,) # ADDED PARAMS
+    #
+    # # k=6, t=0.75 (Higher temporal weight)
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
+    #                            genetic_weights=explained_variance, k=7,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
+    #
+    # k=20, t=0 (Over-clustering without time)
+    plot_kmeans_pc1_vs_time_only(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0,
+                               genetic_weights=explained_variance, k=20,
+                               migration_lines=migration_lines) # ADDED PARAMS
+    #
+    # # k=20, t=0.25
+    # plot_kmeans_colored_by_pop(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.25,
+    #                            genetic_weights=explained_variance, k=20,
+    #                            migration_lines=migration_lines) # ADDED PARAMS
+    #
+    # k=20, t=0.75 (Over-clustering with temporal weight)
+    plot_kmeans_pc1_vs_time_only(X_down, dates_array=dates_down, pop_clusters=pop_ids_down, temporal_weight=0.75,
+                               genetic_weights=explained_variance, k=20,
+                               migration_lines=migration_lines) # ADDED PARAMS
+
+
+    threshold_scores_for_k = {}
+    threshold_scores_for_t = {}
+    treshold_number_of_subpopulations = {}
+
+    for th in thresholds:
+        print(f"############# running evaluation for threshold - {th} #############")
+        event_stage_labels = label_by_demographic_events(pop_ids_down, dates_down, migrations_data, splits,
+                                                         replacements, threshold=th)
+
+        # --- UPDATED CALLS (Using 'th' as the current_threshold) ---
+        # plot_within_population_clusters(X_down, dates_down, pop_ids_down, event_stage_labels,
+        #                                 explained_variance,
+        #                                 title=f"Populations by Demographic Events over {th} (PCA Space)",
+        #                                 migration_lines=migration_lines, current_threshold=th)
+        if th == 0.000:
+            plot_demographic_events_by_subcluster(dates_down, event_stage_labels, title=f"Ground Truth for Threshold {th}",
+                                                  migration_lines=migration_lines, current_threshold=th)
+        # --- END UPDATED CALLS ---
+
+        number_of_subpopulations = np.unique(event_stage_labels).size
+        treshold_number_of_subpopulations[th] = number_of_subpopulations
+
+        temporal_weight_values = [0, 0.25, 0.5, 1, 10]
+        k_values = np.arange(1, 41, 1)
+        scores_for_t = calculate_ARI_vs_t(X_down, temporal_weight_values, k_values, pop_ids_down, event_stage_labels,
+                                          explained_variance)
+        # plot_ARI_vs_t(scores_for_t, temporal_weight_values, k_values)
+        threshold_scores_for_t[th] = scores_for_t
+
+        temporal_weight_values = np.arange(0, 1.5, 0.05)
+        k_values = [5, 10, 20, 30, 40, 100]
+        scores_for_k = calculate_ARI_vs_k(X_down, temporal_weight_values, k_values, pop_ids_down, event_stage_labels,
+                                          explained_variance)
+        # plot_ARI_vs_k(scores_for_k, temporal_weight_values, k_values)
+        threshold_scores_for_k[th] = scores_for_k
+
+    # plot_kmeans_clustering(X, temporal_weight=0.1, genetic_weights=explained_variance, k=10, dates_array=dates_array)
+    # plot_kmeans_clustering(X, temporal_weight=0.1, genetic_weights=explained_variance, k=25, dates_array=dates_array)
+
+    # plot_average_score_vs_t_and_k(populations, migrations, X_down, pop_ids_down, dates_down, explained_variance)
+
+    return threshold_scores_for_k, threshold_scores_for_t, treshold_number_of_subpopulations
 

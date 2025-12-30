@@ -41,7 +41,7 @@ def generate_populations(num_of_populations, min_population_size, max_population
     for i in range(num_of_populations):
         pop_size, freqs = generate_population(min_population_size, max_population_size, base_freqs)
         # Each population stores its entire simulation state
-        populations.append([[pop_size], [freqs], pop_size, freqs, 0, areas[i]])
+        populations.append([[pop_size], [freqs], pop_size, freqs, 0, areas[i%4]]) # Cycle through areas
     pop_size, freqs = generate_population(min_population_size, max_population_size, base_freqs)
     populations.append([[pop_size], [freqs], pop_size, freqs, 0, 'unsample'])
 
@@ -214,14 +214,14 @@ def genetic_drift_simulation(generations, populations, migrations, splits, repla
                 migrate(populations, migration[SRC_POP], migration[TGT_POP],
                         migration[MIG_SIZE] / migration[MIG_LENGTH])
 
-        for migration in baseline_migrations:
-            if gen < migration[MIG_GEN] + migration[MIG_LENGTH] and gen >= migration[MIG_GEN]:
-                migrate(populations, migration[SRC_POP], migration[TGT_POP],
-                        migration[MIG_SIZE] / migration[MIG_LENGTH])
+        # for migration in baseline_migrations:
+        #     if gen < migration[MIG_GEN] + migration[MIG_LENGTH] and gen >= migration[MIG_GEN]:
+        #         migrate(populations, migration[SRC_POP], migration[TGT_POP],
+        #                 migration[MIG_SIZE] / migration[MIG_LENGTH])
 
         if unsampled_pop_idx != None:
             if np.random.rand() < p_mig_unsample:
-                migrate(populations, unsampled_pop_idx, np.random.randint(0, len(populations)-2), 0.01)
+                migrate(populations, unsampled_pop_idx, np.random.randint(0, num_of_populations), 0.01)
 
         # splits
         for splt in splits:
@@ -401,7 +401,7 @@ def generate_kmeans_data(num_of_populations, migrations, splits, replacements, m
                                        max_population_size, num_of_variants)
 
     # Step 2: Run short simulation to stabilize variation
-    populations, _ = genetic_drift_simulation(100, populations, [], init_splits, [], mutations)
+    populations, _ = genetic_drift_simulation(100, populations, [], [], [], mutations)
 
     # Step 3: Truncate frequency history to final state, reset time
     for population in populations:

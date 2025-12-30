@@ -1,0 +1,187 @@
+absl-py==2.3.1
+adjustText==1.3.0
+anaconda-anon-usage @ file:///croot/anaconda-anon-usage_1749054771823/work
+anndata==0.11.4
+annotated-types==0.7.0
+anyio==4.9.0
+archspec @ file:///croot/archspec_1709217642129/work
+argcomplete==3.6.2
+argh==0.31.3
+array-api-compat==1.12.0
+arrow==1.3.0
+astunparse==1.6.3
+attrs==21.4.0
+bed-reader==1.0.6
+binaryornot==0.4.4
+biothings_client==0.4.1
+boltons @ file:///croot/boltons_1751383775419/work
+brotlicffi @ file:///croot/brotlicffi_1736182461069/work
+Cartopy==0.24.1
+certifi==2024.12.14
+cffi==1.17.1
+chardet==5.2.0
+charset-normalizer==3.4.1
+click==8.2.1
+cloudpickle==3.1.1
+colorlog==6.9.0
+conda @ file:///croot/conda_1749171252582/work/conda-src
+conda-anaconda-telemetry @ file:///croot/conda-anaconda-telemetry_1751061994888/work
+conda-anaconda-tos @ file:///croot/conda-anaconda-tos_1752801564376/work
+conda-content-trust @ file:///work/perseverance-python-buildout/croot/conda-content-trust_1728487058234/work
+conda-libmamba-solver @ file:///croot/conda-libmamba-solver_1745607008911/work/src
+conda-package-handling @ file:///croot/conda-package-handling_1731369017509/work
+conda_package_streaming @ file:///croot/conda-package-streaming_1751307506088/work
+contourpy==1.3.1
+cookiecutter==2.6.0
+cryptography @ file:///croot/cryptography_1748977429425/work
+cycler==0.12.1
+decoupler==2.0.0
+deprecation==2.1.0
+distro @ file:///work/perseverance-python-buildout/croot/distro_1728396110052/work
+docopt==0.6.2
+docrep==0.3.2
+et_xmlfile==2.0.0
+flatbuffers==25.9.23
+fonttools==4.55.2
+frozendict @ file:///work/perseverance-python-buildout/croot/frozendict_1728497542215/work
+ftpretty==0.4.0
+future==1.0.0
+gast==0.6.0
+geopandas==1.0.1
+gffutils==0.13
+goatools==1.4.12
+google-pasta==0.2.0
+grpcio==1.75.1
+gseapy==1.1.9
+h11==0.16.0
+h5py==3.13.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.10
+igraph==0.11.9
+Jinja2==3.1.6
+joblib==1.4.2
+jsonpatch @ file:///work/perseverance-python-buildout/croot/jsonpatch_1728399595941/work
+jsonpointer==2.1
+keras==3.11.3
+kipoi==0.8.6
+kipoi-conda==0.3.1
+kipoi-utils==0.7.7
+kipoiseq==0.7.1
+kiwisolver==1.4.7
+legacy-api-wrap==1.4.1
+legendkit==0.3.6
+libclang==18.1.1
+libmambapy @ file:///croot/mamba-split_1734469461757/work/libmambapy
+llvmlite==0.44.0
+Markdown==3.9
+markdown-it-py==3.0.0
+MarkupSafe==3.0.2
+marsilea==0.5.5
+matplotlib==3.9.3
+mdurl==0.1.2
+menuinst @ file:///croot/menuinst_1750861706497/work
+ml_dtypes==0.5.3
+more-itertools==10.6.0
+mygene==3.2.2
+mypy_extensions==1.1.0
+namex==0.1.0
+natsort==8.4.0
+ncls==0.0.70
+networkx==3.4.2
+numba==0.61.2
+numpy==2.2.0
+nvidia-nccl-cu12==2.28.3
+openpyxl==3.1.5
+opt_einsum==3.4.0
+optree==0.17.0
+packaging==24.2
+pandas==2.2.3
+pandera==0.24.0
+patsy==1.0.1
+pillow==11.0.0
+platformdirs==4.3.6
+pluggy @ file:///croot/pluggy_1733169602837/work
+pooch==1.8.2
+protobuf==6.32.1
+psutil==7.0.0
+psycopg2==2.9.10
+pyaml==24.12.1
+pyarrow==21.0.0
+pycombat==0.20
+pycosat @ file:///croot/pycosat_1736868416091/work
+pycparser==2.22
+pydantic==2.11.7
+pydantic_core==2.33.2
+pydot==3.0.4
+pyfaidx==0.9.0.3
+Pygments==2.19.1
+PyMySQL==1.1.1
+pynndescent==0.5.13
+pyodbc==5.2.0
+pyogrio==0.10.0
+pyparsing==3.2.0
+pyproj==3.7.0
+pyranges==0.1.4
+pysam==0.22.1
+pyshp==2.3.1
+pysnptools==0.5.14
+PySocks @ file:///work/perseverance-python-buildout/croot/pysocks_1728386193338/work
+python-dateutil==2.9.0.post0
+python-hostlist==2.2.1
+python-slugify==8.0.4
+python-swiftclient==4.6.0
+pytz==2024.2
+PyYAML==6.0.2
+related==0.7.3
+requests==2.32.3
+rich==14.0.0
+rnanorm==2.2.0
+rpy2==3.6.2
+rpy2-rinterface==3.6.2
+rpy2-robjects==3.6.1
+ruamel.yaml @ file:///croot/ruamel.yaml_1745960305322/work
+ruamel.yaml.clib @ file:///croot/ruamel.yaml.clib_1745937152469/work
+scanpy==1.11.3
+sci==0.1.7
+scikit-learn==1.6.0
+scikit-misc==0.5.1
+scikit-optimize==0.10.2
+scipy==1.14.1
+seaborn==0.13.2
+session-info2==0.1.2
+setuptools==75.6.0
+shapely==2.0.6
+simplejson==3.20.2
+six==1.17.0
+sniffio==1.3.1
+sorted_nearest==0.0.39
+statsmodels==0.14.4
+tabulate==0.9.0
+tensorboard==2.20.0
+tensorboard-data-server==0.7.2
+tensorflow @ file:///tmp/pip_pkgs/tensorflow-2.20.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=5fa3729b0126f75a99882b89fb7d536515721eda8014a63e259e780ba0a37372
+tensorflow-hub==0.16.1
+termcolor==3.1.0
+text-unidecode==1.3
+texttable==1.7.0
+tf_keras==2.20.1
+threadpoolctl==3.5.0
+tinydb==4.8.2
+tqdm==4.67.1
+truststore @ file:///croot/truststore_1736550121485/work
+typeguard==4.4.4
+types-python-dateutil==2.9.0.20250822
+typing-inspect==0.9.0
+typing-inspection==0.4.1
+typing_extensions==4.14.0
+tzdata==2024.2
+tzlocal==5.3.1
+umap-learn==0.5.9.post2
+urllib3==2.3.0
+Werkzeug==3.1.3
+wheel==0.45.1
+wrapt==1.17.3
+xgboost==3.0.5
+XlsxWriter==3.2.2
+zstandard==0.23.0
